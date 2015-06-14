@@ -40,7 +40,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="cAlgo.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=3499da3018340880, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\API\cAlgo.API.dll</HintPath>
+      <HintPath>\\vmware-host\Shared Folders\Documents\cAlgo\API\cAlgo.API.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
