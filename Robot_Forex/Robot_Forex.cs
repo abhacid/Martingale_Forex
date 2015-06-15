@@ -37,13 +37,6 @@ namespace cAlgo.Robots
 			set;
 		}
 
-		[Parameter(DefaultValue = 10000, MinValue = 1000)]
-		public int LotStep
-		{
-			get;
-			set;
-		}
-
 		[Parameter("Stop_Loss", DefaultValue = 50, MinValue = 0)]
 		public int Stop_Loss
 		{
@@ -127,15 +120,32 @@ namespace cAlgo.Robots
 				if(position.TradeType == TradeType.Buy)
 				{
 					if(Bid - GetAveragePrice(TradeType.Buy) >= Tral_Start * Symbol.PipSize)
-						if(Bid - Tral_Stop * Symbol.PipSize > position.StopLoss)
-							ModifyPosition(position, Bid - Tral_Stop * Symbol.PipSize, position.TakeProfit);
+					{
+						double? newStopLoss = Bid - Tral_Stop * Symbol.PipSize;
+
+						if(newStopLoss > position.StopLoss)
+						{
+							Print("old SL : {0}, new SL : {1}", position.StopLoss, newStopLoss);
+							ModifyPosition(position, newStopLoss, position.TakeProfit);
+						}
+					}
+
 				}
 
 				if(position.TradeType == TradeType.Sell)
 				{
 					if(GetAveragePrice(TradeType.Sell) - Ask >= Tral_Start * Symbol.PipSize)
-						if(Ask + Tral_Stop * Symbol.PipSize < position.StopLoss || position.StopLoss == 0)
-							ModifyPosition(position, Ask + Tral_Stop * Symbol.PipSize, position.TakeProfit);
+					{
+						double? newStopLoss = Ask + Tral_Stop * Symbol.PipSize;
+
+						if(newStopLoss < position.StopLoss || position.StopLoss == 0)
+						{
+							Print("old SL : {0}, new SL : {1}", position.StopLoss, newStopLoss);
+							ModifyPosition(position, newStopLoss, position.TakeProfit);
+						}
+
+					}
+
 				}
 			}
 		}
@@ -209,24 +219,23 @@ namespace cAlgo.Robots
 			{
 				long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * positions.Length, RoundingMode.ToNearest);
 
-				if(volume >= LotStep)
+
+				int pipstep = GetDynamicPipstep(25, 4);
+				int positionSide = GetPositionsSide();
+
+				switch(positionSide)
 				{
-					int pipstep = GetDynamicPipstep(25, MaxOrders - 1);
-					int positionSide = GetPositionsSide();
+					case 0:
+						if(Symbol.Ask < FindLastPrice(TradeType.Buy) - pipstep * Symbol.PipSize)
+							executeOrder(TradeType.Buy, volume);
+						break;
 
-					switch(positionSide)
-					{
-						case 0:
-							if(Symbol.Ask < FindLastPrice(TradeType.Buy) - pipstep * Symbol.PipSize)
-								executeOrder(TradeType.Buy, volume);
-							break;
-
-						case 1:
-							if(Symbol.Bid > FindLastPrice(TradeType.Sell) + pipstep * Symbol.PipSize)
-								executeOrder(TradeType.Sell, volume);
-							break;
-					}
+					case 1:
+						if(Symbol.Bid > FindLastPrice(TradeType.Sell) + pipstep * Symbol.PipSize)
+							executeOrder(TradeType.Sell, volume);
+						break;
 				}
+
 
 			}
 
@@ -306,7 +315,7 @@ namespace cAlgo.Robots
 			return Result;
 		}
 
-		private int GetDynamicPipstep(int CountOfBars, int gradient)
+		private int GetDynamicPipstep(int CountOfBars, int division)
 		{
 			int Result;
 			double HighestPrice = 0, LowestPrice = 0;
@@ -329,7 +338,7 @@ namespace cAlgo.Robots
 					LowestPrice = MarketSeries.Low[i];
 			}
 
-			Result = (int)((HighestPrice - LowestPrice) / Symbol.PipSize / gradient);
+			Result = (int)((HighestPrice - LowestPrice) / Symbol.PipSize / division);
 
 			return Result;
 		}
@@ -348,7 +357,6 @@ namespace cAlgo.Robots
 							LastPrice = position.EntryPrice;
 							continue;
 						}
-
 						if(position.EntryPrice < LastPrice)
 							LastPrice = position.EntryPrice;
 					}
@@ -361,7 +369,6 @@ namespace cAlgo.Robots
 							LastPrice = position.EntryPrice;
 							continue;
 						}
-
 						if(position.EntryPrice > LastPrice)
 							LastPrice = position.EntryPrice;
 					}
