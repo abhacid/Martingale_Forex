@@ -127,14 +127,14 @@ namespace cAlgo.Robots
 				if(position.TradeType == TradeType.Buy)
 				{
 					if(Bid - GetAveragePrice(TradeType.Buy) >= Tral_Start * Symbol.PipSize)
-						if(Bid - Tral_Stop * Symbol.PipSize >= position.StopLoss)
+						if(Bid - Tral_Stop * Symbol.PipSize > position.StopLoss)
 							ModifyPosition(position, Bid - Tral_Stop * Symbol.PipSize, position.TakeProfit);
 				}
 
 				if(position.TradeType == TradeType.Sell)
 				{
 					if(GetAveragePrice(TradeType.Sell) - Ask >= Tral_Start * Symbol.PipSize)
-						if(Ask + Tral_Stop * Symbol.PipSize <= position.StopLoss || position.StopLoss == 0)
+						if(Ask + Tral_Stop * Symbol.PipSize < position.StopLoss || position.StopLoss == 0)
 							ModifyPosition(position, Ask + Tral_Stop * Symbol.PipSize, position.TakeProfit);
 				}
 			}
@@ -348,6 +348,7 @@ namespace cAlgo.Robots
 							LastPrice = position.EntryPrice;
 							continue;
 						}
+
 						if(position.EntryPrice < LastPrice)
 							LastPrice = position.EntryPrice;
 					}
@@ -360,6 +361,7 @@ namespace cAlgo.Robots
 							LastPrice = position.EntryPrice;
 							continue;
 						}
+
 						if(position.EntryPrice > LastPrice)
 							LastPrice = position.EntryPrice;
 					}
