@@ -170,41 +170,33 @@ namespace cAlgo.Robots
 
 		private void OnPositionOpened(PositionOpenedEventArgs args)
 		{
-			double? StopLossPrice = null;
-			double? TakeProfitPrice = null;
+			double? stopLossPrice = null;
+			double? takeProfitPrice = null;
 
-			Position[] positions = GetPositions();
 
-			if(positions.Length == 1)
+			switch(GetPositionsSide())
 			{
-				Position position = args.Position;
-
-				if(position.TradeType == TradeType.Buy)
-					TakeProfitPrice = position.EntryPrice + TakeProfit * Symbol.PipSize;
-
-				if(position.TradeType == TradeType.Sell)
-					TakeProfitPrice = position.EntryPrice - TakeProfit * Symbol.PipSize;
+				case 0:
+					double averageBuyPrice = GetAveragePrice(TradeType.Buy);
+					takeProfitPrice = averageBuyPrice + TakeProfit * Symbol.PipSize;
+					stopLossPrice = averageBuyPrice - Stop_Loss * Symbol.PipSize;
+					break;
+				case 1:
+					double averageSellPrice = GetAveragePrice(TradeType.Sell);
+					takeProfitPrice = averageSellPrice - TakeProfit * Symbol.PipSize;
+					stopLossPrice = averageSellPrice + Stop_Loss * Symbol.PipSize;
+					break;
 			}
-			else
-				switch(GetPositionsSide())
-				{
-					case 0:
-						double averageBuyPrice = GetAveragePrice(TradeType.Buy);
-						TakeProfitPrice = averageBuyPrice + TakeProfit * Symbol.PipSize;
-						StopLossPrice = averageBuyPrice - Stop_Loss * Symbol.PipSize;
-						break;
-					case 1:
-						double averageSellPrice = GetAveragePrice(TradeType.Sell);
-						TakeProfitPrice = averageSellPrice - TakeProfit * Symbol.PipSize;
-						StopLossPrice = averageSellPrice + Stop_Loss * Symbol.PipSize;
 
-						break;
-				}
-
-			foreach(Position position in positions)
+			if(stopLossPrice.HasValue || takeProfitPrice.HasValue)
 			{
-				if(StopLossPrice.HasValue || TakeProfitPrice.HasValue)
-					ModifyPosition(position, position.StopLoss, TakeProfitPrice);
+				Position[] positions = GetPositions();
+
+				foreach(Position position in positions)
+				{
+					if(stopLossPrice != position.StopLoss || takeProfitPrice != position.TakeProfit)
+						ModifyPosition(position, stopLossPrice, takeProfitPrice);
+				}
 			}
 		}
 
