@@ -11,3 +11,6 @@ Ce robot est une martingale cela signifie qu'il augmente le volume de ses prises
 Un stop loss et un take profit sont appliqués sur chacune des positions mais en se basant sur le prix moyen, c'est à dire le barycentre des prises de positions : `somme(prix*volume)/somme(volume)`.
 
 Pour décider à partir de quel niveau de perte on prends une nouvelle position, on estime l'écart `prix max-prix min` sur une période de 25 bougies et on divise cet écart par 4 ce qui donne une grille dont l'écartement varie en fonction de la volatilité des prix, elle est de plus en plus resserrée lorsque la volatilité diminue.
+
+## Interprétation
+Les cours fluctuent à la hausse ou à la baisse, mais corrigent régulièrement, c'est ce phénomène de correction qu'utilise ce robot en effet il augmente son exposition lorsqu'il perd de telle façon que la dernière prise de position sera la plus grande en volume, par conséquent dès que la correction arrive les dernières prises de positions permettent d'engranger des gains supérieur aux pertes des premières prises positions. D'autre part le Take profit étant basé sur la moyenne des positions, il est de ce fait atteint plus tôt et diminue de ce fait le risque de pertes importantes.
