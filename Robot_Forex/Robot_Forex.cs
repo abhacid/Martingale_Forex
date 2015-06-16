@@ -60,7 +60,7 @@ namespace cAlgo.Robots
         protected override void OnStart()
         {
             botName = ToString();
-            instanceLabel = botName + "-" + Symbol.Code;
+            instanceLabel = botName + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
             Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
             Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
@@ -195,7 +195,6 @@ namespace cAlgo.Robots
             {
                 long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * martingaleCoeff * positions.Length, RoundingMode.ToNearest);
 
-
                 int pipstep = GetDynamicPipstep(25, 4);
                 int positionSide = GetPositionsSide();
 
@@ -242,7 +241,7 @@ namespace cAlgo.Robots
 
         private TradeResult executeOrder(TradeType tradeType, long volume)
         {
-            return ExecuteMarketOrder(tradeType, Symbol, volume, botName + "-" + Symbol.Code);
+            return ExecuteMarketOrder(tradeType, Symbol, volume, instanceLabel);
         }
 
         private Position[] GetPositions()
