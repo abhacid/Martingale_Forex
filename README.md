@@ -14,3 +14,9 @@ Pour décider à partir de quel niveau de perte on prends une nouvelle position,
 
 ## Interprétation
 Les cours fluctuent à la hausse ou à la baisse, mais corrigent régulièrement, c'est ce phénomène de correction qu'utilise ce robot en effet il augmente son exposition lorsqu'il perd de telle façon que la dernière prise de position sera la plus grande en volume, par conséquent dès que la correction arrive les dernières prises de positions permettent d'engranger des gains supérieur aux pertes des premières prises positions. D'autre part le Take profit étant basé sur la moyenne des positions, il est de ce fait atteint plus tôt et diminue de ce fait le risque de pertes importantes.
+
+## Statistiques
+Les statistiques depuis le 1er Janvier 2015 sur la version 175998c peuvent être visualisés sur :
+[AlgoChart](http://www.algochart.com/report/ipq4u).
+
+
