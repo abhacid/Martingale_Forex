@@ -33,20 +33,20 @@ namespace cAlgo.Robots
         [Parameter(DefaultValue = 10000, MinValue = 1000)]
         public int FirstLot { get; set; }
 
-        [Parameter("Stop_Loss", DefaultValue = 50, MinValue = 0)]
+        [Parameter("Stop_Loss", DefaultValue = 50, MinValue = 5)]
         public int Stop_Loss { get; set; }
 
-        [Parameter("Take_Profit", DefaultValue = 180, MinValue = 10)]
+        [Parameter("Take_Profit", DefaultValue = 180, MinValue = 5)]
         public int TakeProfit { get; set; }
 
-        [Parameter("Tral_Start", DefaultValue = 50, MinValue = 10)]
+        [Parameter("Tral_Start", DefaultValue = 50, MinValue = 5)]
         public int Tral_Start { get; set; }
 
-        [Parameter("Tral_Stop", DefaultValue = 50, MinValue = 10)]
+        [Parameter("Tral_Stop", DefaultValue = 50, MinValue = 5)]
         public int Tral_Stop { get; set; }
 
-
-
+        [Parameter("Martingale", DefaultValue = 1, MinValue = 0)]
+        public double martingaleCoeff { get; set; }
 
         [Parameter(DefaultValue = 5, MinValue = 2)]
         public int MaxOrders { get; set; }
@@ -193,7 +193,7 @@ namespace cAlgo.Robots
 
             if (positions.Length < MaxOrders)
             {
-                long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * positions.Length, RoundingMode.ToNearest);
+                long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * martingaleCoeff * positions.Length, RoundingMode.ToNearest);
 
 
                 int pipstep = GetDynamicPipstep(25, 4);
@@ -202,12 +202,16 @@ namespace cAlgo.Robots
                 switch (positionSide)
                 {
                     case 0:
-                        if (Symbol.Ask < FindLastPrice(TradeType.Buy) - pipstep * Symbol.PipSize)
+                        double lastBuyPrice = FindLastPrice(TradeType.Buy);
+                        ChartObjects.DrawHorizontalLine("gridBuyLine", lastBuyPrice - pipstep * Symbol.PipSize, Colors.Green, 2);
+                        if (Symbol.Ask < lastBuyPrice - pipstep * Symbol.PipSize)
                             executeOrder(TradeType.Buy, volume);
                         break;
 
                     case 1:
-                        if (Symbol.Bid > FindLastPrice(TradeType.Sell) + pipstep * Symbol.PipSize)
+                        double lastSellPrice = FindLastPrice(TradeType.Sell);
+                        ChartObjects.DrawHorizontalLine("gridSellLine", lastSellPrice + pipstep * Symbol.PipSize, Colors.Red, 2);
+                        if (Symbol.Bid > lastSellPrice + pipstep * Symbol.PipSize)
                             executeOrder(TradeType.Sell, volume);
                         break;
                 }
