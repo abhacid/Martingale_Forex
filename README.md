@@ -8,6 +8,6 @@ C'est suite à une demande d'un trader **Antoine C** qui souhaitait ajouter un s
 ## Stratégie de Robot_Forex
 Ce robot est une martingale cela signifie qu'il augmente le volume de ses prises de positions lorsqu'il perd afin de moyenner à la hausse ou à la baisse selon qu'il achète ou qu'il vend. le coefficient de martingale `martingaleCoeff` permet de définir le multiplicateur de volume; s'il est à `1` le volume augmente d'une unité du volume initial `FirstLot` ou de façon générale il augmente de `martingaleCoeff*FirstLot`.
 
-Un stop loss et un take profit est appliqué sur chacune des positions mais en se basant sur le prix moyen, c'est à dire le barycentre des prises de positions : `somme(prix*volume)/somme(volume)`.
+Un stop loss et un take profit sont appliqués sur chacune des positions mais en se basant sur le prix moyen, c'est à dire le barycentre des prises de positions : `somme(prix*volume)/somme(volume)`.
 
 Pour décider à partir de quel niveau de perte on prends une nouvelle position, on estime l'écart `prix max-prix min` sur une période de 25 bougies et on divise cet écart par 4 ce qui donne une grille dont l'écartement varie en fonction de la volatilité des prix, elle est de plus en plus resserrée lorsque la volatilité diminue.
