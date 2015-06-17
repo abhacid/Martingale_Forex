@@ -17,6 +17,6 @@ Les cours fluctuent à la hausse ou à la baisse, mais corrigent régulièrement
 
 ## Statistiques
 Les statistiques depuis le 1er Janvier 2015 sur la version 175998c peuvent être visualisés sur :
-[AlgoChart](http://www.algochart.com/report/z7uts).
+[AlgoChart](http://www.algochart.com/report/0f11g).
 
 
