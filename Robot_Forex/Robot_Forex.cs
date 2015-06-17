@@ -31,24 +31,28 @@ namespace cAlgo.Robots
     public class Robot_Forex : Robot
     {
         //Parameters GBPUSD for m4 timeframe
-        [Parameter(DefaultValue = 10000, MinValue = 1000)]
+        [Parameter("First Lot", DefaultValue = 10000, MinValue = 1000)]
         public int FirstLot { get; set; }
 
-        [Parameter("Stop_Loss", DefaultValue = 35, MinValue = 5)]
-        public int Stop_Loss { get; set; }
+        //[Parameter("Stop_Loss", DefaultValue = 15, MinValue = 5)]
+        //public int StopLoss { get; set; }
 
-        [Parameter("Take_Profit", DefaultValue = 5, MinValue = 5)]
+        [Parameter("Take Profit", DefaultValue = 5, MinValue = 5)]
         public int TakeProfit { get; set; }
 
-        [Parameter("Martingale", DefaultValue = 1, MinValue = 0)]
-        public double martingaleCoeff { get; set; }
+        [Parameter("Profit Factor", DefaultValue = 2, MinValue = 0.1)]
+        public double ProfitFactor { get; set; }
 
-        [Parameter(DefaultValue = 9, MinValue = 2)]
+        [Parameter("Martingale", DefaultValue = 0.6, MinValue = 0)]
+        public double MartingaleCoeff { get; set; }
+
+        [Parameter("Max Orders", DefaultValue = 8, MinValue = 2)]
         public int MaxOrders { get; set; }
 
         private bool isRobotStopped;
         private string botName;
         private string instanceLabel;
+        private double stopLoss;
 
 
 
@@ -57,12 +61,16 @@ namespace cAlgo.Robots
             botName = ToString();
             instanceLabel = botName + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
+            stopLoss = TakeProfit / ProfitFactor;
+
+
             Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
             Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
             Print("The current symbol has TickSize: {0}", Symbol.TickSize);
             Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
 
             Positions.Opened += OnPositionOpened;
+
 
         }
 
@@ -86,7 +94,7 @@ namespace cAlgo.Robots
             else
                 ControlSeries();
 
-            
+
         }
 
         protected override void OnError(Error CodeOfError)
@@ -116,7 +124,6 @@ namespace cAlgo.Robots
             }
         }
 
-
         private void OnPositionOpened(PositionOpenedEventArgs args)
         {
             double? stopLossPrice = null;
@@ -128,12 +135,12 @@ namespace cAlgo.Robots
                 case 0:
                     double averageBuyPrice = GetAveragePrice(TradeType.Buy);
                     takeProfitPrice = averageBuyPrice + TakeProfit * Symbol.PipSize;
-                    stopLossPrice = averageBuyPrice - Stop_Loss * Symbol.PipSize;
+                    stopLossPrice = averageBuyPrice - stopLoss * Symbol.PipSize;
                     break;
                 case 1:
                     double averageSellPrice = GetAveragePrice(TradeType.Sell);
                     takeProfitPrice = averageSellPrice - TakeProfit * Symbol.PipSize;
-                    stopLossPrice = averageSellPrice + Stop_Loss * Symbol.PipSize;
+                    stopLossPrice = averageSellPrice + stopLoss * Symbol.PipSize;
                     break;
             }
 
@@ -149,16 +156,15 @@ namespace cAlgo.Robots
             }
         }
 
-
         private void ControlSeries()
         {
             Position[] positions = GetPositions();
 
             if (positions.Length < MaxOrders)
             {
-                long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * martingaleCoeff * positions.Length, RoundingMode.ToNearest);
+                long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * MartingaleCoeff * positions.Length, RoundingMode.ToNearest);
 
-                int pipstep = GetDynamicPipstep(25, 4);
+                int pipstep = GetDynamicPipstep(25, MaxOrders - 1);
                 int positionSide = GetPositionsSide();
 
                 switch (positionSide)
