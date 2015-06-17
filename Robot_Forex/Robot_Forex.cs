@@ -40,12 +40,6 @@ namespace cAlgo.Robots
         [Parameter("Take_Profit", DefaultValue = 5, MinValue = 5)]
         public int TakeProfit { get; set; }
 
-        [Parameter("Tral_Start", DefaultValue = 19, MinValue = 5)]
-        public int Tral_Start { get; set; }
-
-        [Parameter("Tral_Stop", DefaultValue = 21, MinValue = 5)]
-        public int Tral_Stop { get; set; }
-
         [Parameter("Martingale", DefaultValue = 1, MinValue = 0)]
         public double martingaleCoeff { get; set; }
 
@@ -92,39 +86,7 @@ namespace cAlgo.Robots
             else
                 ControlSeries();
 
-            foreach (var position in positions)
-            {
-                if (position.TradeType == TradeType.Buy)
-                {
-                    if (Bid - GetAveragePrice(TradeType.Buy) >= Tral_Start * Symbol.PipSize)
-                    {
-                        double? newStopLoss = Bid - Tral_Stop * Symbol.PipSize;
-
-                        if (newStopLoss > position.StopLoss)
-                        {
-                            Print("old SL : {0}, new SL : {1}", position.StopLoss, newStopLoss);
-                            ModifyPosition(position, newStopLoss, position.TakeProfit);
-                        }
-                    }
-
-                }
-
-                if (position.TradeType == TradeType.Sell)
-                {
-                    if (GetAveragePrice(TradeType.Sell) - Ask >= Tral_Start * Symbol.PipSize)
-                    {
-                        double? newStopLoss = Ask + Tral_Stop * Symbol.PipSize;
-
-                        if (newStopLoss < position.StopLoss || position.StopLoss == 0)
-                        {
-                            Print("old SL : {0}, new SL : {1}", position.StopLoss, newStopLoss);
-                            ModifyPosition(position, newStopLoss, position.TakeProfit);
-                        }
-
-                    }
-
-                }
-            }
+            
         }
 
         protected override void OnError(Error CodeOfError)
