@@ -30,25 +30,26 @@ namespace cAlgo.Robots
     [Robot("Robot Forex", AccessRights = AccessRights.None)]
     public class Robot_Forex : Robot
     {
+        //Parameters GBPUSD for m4 timeframe
         [Parameter(DefaultValue = 10000, MinValue = 1000)]
         public int FirstLot { get; set; }
 
-        [Parameter("Stop_Loss", DefaultValue = 50, MinValue = 5)]
+        [Parameter("Stop_Loss", DefaultValue = 35, MinValue = 5)]
         public int Stop_Loss { get; set; }
 
-        [Parameter("Take_Profit", DefaultValue = 180, MinValue = 5)]
+        [Parameter("Take_Profit", DefaultValue = 5, MinValue = 5)]
         public int TakeProfit { get; set; }
 
-        [Parameter("Tral_Start", DefaultValue = 50, MinValue = 5)]
+        [Parameter("Tral_Start", DefaultValue = 19, MinValue = 5)]
         public int Tral_Start { get; set; }
 
-        [Parameter("Tral_Stop", DefaultValue = 50, MinValue = 5)]
+        [Parameter("Tral_Stop", DefaultValue = 21, MinValue = 5)]
         public int Tral_Stop { get; set; }
 
         [Parameter("Martingale", DefaultValue = 1, MinValue = 0)]
         public double martingaleCoeff { get; set; }
 
-        [Parameter(DefaultValue = 5, MinValue = 2)]
+        [Parameter(DefaultValue = 9, MinValue = 2)]
         public int MaxOrders { get; set; }
 
         private bool isRobotStopped;
@@ -219,6 +220,7 @@ namespace cAlgo.Robots
             }
 
         }
+
         // You can modify the condition of entry here.
         private int GetStdIlanSignal()
         {
