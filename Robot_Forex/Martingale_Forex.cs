@@ -27,7 +27,7 @@ using cAlgo.API.Internals;
 
 namespace cAlgo.Robots
 {
-    [Robot("Robot Forex", AccessRights = AccessRights.None)]
+    [Robot("Martingale Forex", AccessRights = AccessRights.None)]
     public class Robot_Forex : Robot
     {
         //Parameters GBPUSD for m4 timeframe
