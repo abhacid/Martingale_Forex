@@ -51,6 +51,7 @@
 using System;
 using cAlgo.API;
 using cAlgo.API.Internals;
+using cAlgo.Lib;
 
 namespace cAlgo.Robots
 {
@@ -58,9 +59,8 @@ namespace cAlgo.Robots
     public class Robot_Forex : Robot
     {
         #region Parameters
-        //Parameters EURUSD for m3 timeframe
-        [Parameter("First Lot", DefaultValue = 10000, MinValue = 1000)]
-        public int FirstLot { get; set; }
+        [Parameter("Max Risk (%)", DefaultValue = 3, MinValue = 0)]
+        public int MaxRisk { get; set; }
 
         [Parameter("Take Profit", DefaultValue = 10, MinValue = 5)]
         public int TakeProfit { get; set; }
@@ -80,6 +80,7 @@ namespace cAlgo.Robots
         private string botName;
         private string instanceLabel;
         private double stopLoss;
+        private long firstLot;
 
 
 
@@ -90,15 +91,12 @@ namespace cAlgo.Robots
 
             stopLoss = TakeProfit / ProfitFactor;
 
-
             Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
             Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
             Print("The current symbol has TickSize: {0}", Symbol.TickSize);
             Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
 
             Positions.Opened += OnPositionOpened;
-
-
         }
 
         protected override void OnTick()
@@ -117,11 +115,13 @@ namespace cAlgo.Robots
                 isRobotStopped = false;
 
             if (positions.Length == 0)
-                SendFirstOrder(FirstLot);
+            {
+                firstLot = GetVolume();
+                SendFirstOrder(firstLot);
+            }
             else
+
                 ControlSeries();
-
-
         }
 
         protected override void OnError(Error CodeOfError)
@@ -138,7 +138,7 @@ namespace cAlgo.Robots
             }
         }
 
-        private void SendFirstOrder(int OrderVolume)
+        private void SendFirstOrder(long OrderVolume)
         {
             switch (GetStdIlanSignal())
             {
@@ -189,7 +189,7 @@ namespace cAlgo.Robots
 
             if (positions.Length < MaxOrders)
             {
-                long volume = Symbol.NormalizeVolume(FirstLot + FirstLot * MartingaleCoeff * positions.Length, RoundingMode.ToNearest);
+                long volume = Symbol.NormalizeVolume(firstLot * (1 + MartingaleCoeff * positions.Length), RoundingMode.ToNearest);
 
                 int pipstep = GetDynamicPipstep(25, MaxOrders - 1);
                 int positionSide = GetPositionsSide();
@@ -239,6 +239,18 @@ namespace cAlgo.Robots
         private TradeResult executeOrder(TradeType tradeType, long volume)
         {
             return ExecuteMarketOrder(tradeType, Symbol, volume, instanceLabel);
+        }
+
+        /// <summary>
+        /// Calcule le volume normalisé en fonction du money management pour un risque maximum et un stop loss donné.
+        /// </summary>
+        /// <returns>Le volume normalisé arrondi inférieurement</returns>
+        private long GetVolume()
+        {
+            double maxVolume = this.moneyManagement(MaxRisk/100, stopLoss);
+            double volume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2);
+
+            return Symbol.NormalizeVolume(volume, RoundingMode.Down);
         }
 
         private Position[] GetPositions()
