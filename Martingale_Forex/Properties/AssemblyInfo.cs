@@ -1,10 +1,10 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("Robot_Forex")]
+[assembly: AssemblyTitle("Martingale_Forex")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("Robot_Forex")]
+[assembly: AssemblyProduct("Martingale_Forex")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
