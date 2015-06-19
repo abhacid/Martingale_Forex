@@ -55,15 +55,15 @@ using cAlgo.Lib;
 
 namespace cAlgo.Robots
 {
-    [Robot("Robot Forex", AccessRights = AccessRights.None)]
-    public class Robot_Forex : Robot
+    [Robot("Martingale Forex", AccessRights = AccessRights.None)]
+    public class Martingale_Forex : Robot
     {
         #region Parameters
         [Parameter("Max Risk (%)", DefaultValue = 3, MinValue = 0)]
-        public int MaxRisk { get; set; }
+        public double MaxRisk { get; set; }
 
         [Parameter("Take Profit", DefaultValue = 10, MinValue = 5)]
-        public int TakeProfit { get; set; }
+        public double TakeProfit { get; set; }
 
         [Parameter("Profit Factor", DefaultValue = 0.2, MinValue = 0.1)]
         public double ProfitFactor { get; set; }
@@ -78,16 +78,15 @@ namespace cAlgo.Robots
 
         private bool isRobotStopped;
         private string botName;
+        private const string botVersion = "1.3.1";
         private string instanceLabel;
         private double stopLoss;
-        private long firstLot;
-
-
+        private double firstLot;
 
         protected override void OnStart()
         {
             botName = ToString();
-            instanceLabel = botName + "-" + Symbol.Code + "-" + TimeFrame.ToString();
+            instanceLabel = botName + "-" + botVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
             stopLoss = TakeProfit / ProfitFactor;
 
@@ -117,7 +116,11 @@ namespace cAlgo.Robots
             if (positions.Length == 0)
             {
                 firstLot = GetVolume();
-                SendFirstOrder(firstLot);
+
+                if (firstLot <= 0)
+                    throw new System.ArgumentException(String.Format("the 'first lot' : {0} parameter must be positive and not null", firstLot));
+                else
+                    SendFirstOrder(firstLot);
             }
             else
 
@@ -138,7 +141,7 @@ namespace cAlgo.Robots
             }
         }
 
-        private void SendFirstOrder(long OrderVolume)
+        private void SendFirstOrder(double OrderVolume)
         {
             switch (GetStdIlanSignal())
             {
@@ -155,7 +158,6 @@ namespace cAlgo.Robots
         {
             double? stopLossPrice = null;
             double? takeProfitPrice = null;
-
 
             switch (GetPositionsSide())
             {
@@ -190,8 +192,9 @@ namespace cAlgo.Robots
             if (positions.Length < MaxOrders)
             {
                 long volume = Symbol.NormalizeVolume(firstLot * (1 + MartingaleCoeff * positions.Length), RoundingMode.ToNearest);
+				int countOfBars = (int)(25.0/positions.Length);
 
-                int pipstep = GetDynamicPipstep(25, MaxOrders - 1);
+                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders - 1);
                 int positionSide = GetPositionsSide();
 
                 switch (positionSide)
@@ -236,21 +239,23 @@ namespace cAlgo.Robots
             return Result;
         }
 
-        private TradeResult executeOrder(TradeType tradeType, long volume)
+        private TradeResult executeOrder(TradeType tradeType, double volume)
         {
-            return ExecuteMarketOrder(tradeType, Symbol, volume, instanceLabel);
+            Print("normalized volume : {0}", Symbol.NormalizeVolume(volume, RoundingMode.ToNearest));
+            return ExecuteMarketOrder(tradeType, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), instanceLabel);
         }
 
         /// <summary>
         /// Calcule le volume normalisé en fonction du money management pour un risque maximum et un stop loss donné.
         /// </summary>
         /// <returns>Le volume normalisé arrondi inférieurement</returns>
-        private long GetVolume()
+        private double GetVolume()
         {
-            double maxVolume = this.moneyManagement(MaxRisk/100, stopLoss);
-            double volume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2);
+            double maxVolume = this.moneyManagement(MaxRisk, stopLoss);
+            //Print("maxrisk/100 {0}", (MaxRisk / 100.0));
+            double volume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
 
-            return Symbol.NormalizeVolume(volume, RoundingMode.Down);
+            return volume;
         }
 
         private Position[] GetPositions()
