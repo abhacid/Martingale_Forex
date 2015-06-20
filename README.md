@@ -1,4 +1,4 @@
-# Matingale_Forex : martingale et moyenne
+# Martingale_Forex : martingale et moyenne
 
 ## Sommaire
 Ce projet permet d'écrire un robot de trading basé sur un exemple [Robot_Forex](http://ctdn.com/algos/cbots/show/225) de base écrit par [imWald](http://ctdn.com/users/profile/imWald) sur le dépôt de code source [CTDN](http://ctdn.com).
