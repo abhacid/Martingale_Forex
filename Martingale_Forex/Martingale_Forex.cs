@@ -70,10 +70,10 @@
 // plateforme		:	cAlgo version 1.30.58489
 // Robot			:	Martingale_Forex v1.3.1.2
 // Capital initial	:	10 000€
-// flux de données	:	Tick data from server (accurate)
-// commission		:	30 per Million
+// Flux de données	:	Tick data from server (accurate)
+// Commission		:	30 per Million
 // Résultats		:	50 409 069€
-// entre le 01 Mai 2015 et le 21 Juin 2015 gain de 3830€.
+// durée            :   entre le 01 Mai 2015 et le 21 Juin 2015.
 
 #endregion
 
@@ -167,10 +167,10 @@ namespace cAlgo.Robots
 
             if (positions.Length == 0)
             {
-				// Calcule le volume en fonction du money management pour un risque maximum et un stop loss donné.
-				// Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
-				double maxVolume = this.moneyManagement(MoneyManagement, stopLoss);
-				firstLot = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
+                // Calcule le volume en fonction du money management pour un risque maximum et un stop loss donné.
+                // Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
+                double maxVolume = this.moneyManagement(MoneyManagement, stopLoss);
+                firstLot = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
 
                 if (firstLot <= 0)
                     throw new System.ArgumentException(String.Format("the 'first lot' : {0} parameter must be positive and not null", firstLot));
@@ -300,7 +300,7 @@ namespace cAlgo.Robots
         }
 
         /// <summary>
-       
+
 
         private Position[] GetPositions()
         {
