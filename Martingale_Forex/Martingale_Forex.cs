@@ -22,33 +22,63 @@
 
 
 #region Description
-// Ce projet permet d'écrire un robot de trading basé sur un exemple Robot_Forex de base écrit par 
-//imWald sur le dépôt de code source CTDN.
+//
+// Le projet et sa description se trouvent sur Github à l'adresse https://github.com/abhacid/Martingale_Forex
+//
+// Ce projet permet d'écrire un robot de trading basé sur un exemple Robot_Forex initial écrit par 
+// imWald sur le dépôt de code source CTDN.
 
-//C'est suite à une demande d'un trader Antoine C qui souhaitait ajouter un stop-Loss à ce robot que
-//j'ai commencé l'étude puis la modification de ce dernier. De fil en aiguille j'y ai ajouté d'autres 
-//caractéristiques et améliorations.
+// C'est suite à une demande d'un trader Antoine C qui souhaitait ajouter un stop-Loss à ce robot que
+// j'ai commencé l'étude puis la modification de ce dernier. De fil en aiguille j'y ai ajouté d'autres 
+// caractéristiques et améliorations.
 
-//Ce robot est une martingale cela signifie qu'il augmente le volume de ses prises de positions
-//lorsqu'il perd afin de moyenner à la hausse ou à la baisse selon qu'il achète ou qu'il vend. 
-//le coefficient de martingale martingaleCoeff permet de définir le multiplicateur de volume; 
-//s'il est à 1 le volume augmente d'une unité du volume initial FirstLot ou de façon générale 
-//il augmente de martingaleCoeff*FirstLot.
+// Ce robot est une martingale cela signifie qu'il augmente le volume de ses prises de positions
+// lorsqu'il perd afin de moyenner à la hausse ou à la baisse selon qu'il achète ou qu'il vend. 
+// le coefficient de martingale martingaleCoeff permet de définir le multiplicateur de volume; 
+// s'il est à 1 le volume augmente d'une unité du volume initial FirstLot ou de façon générale 
+// il augmente de martingaleCoeff*FirstLot.
 
 //Un stop loss et un take profit est appliqué sur chacune des positions mais en se basant sur 
 //le prix moyen, c'est à dire le barycentre des prises de positions : somme(prix*volume)/somme(volume).
 
-//Pour décider à partir de quel niveau de perte on prends une nouvelle position, on estime 
-//l'écart prix max-prix min sur une période de 25 bougies et on divise cet écart par 4 ce 
-//qui donne une grille dont l'écartement varie en fonction de la volatilité des prix, elle 
-//est de plus en plus resserrée lorsque la volatilité diminue. 
+// Pour décider à partir de quel niveau de perte on prends une nouvelle position, on estime 
+// l'écart prix max-prix min sur une période de '25.0/(Nombre de positions)' bougies et on divise cet écart 
+// par MaxOrders ce qui donne une grille dont l'écartement varie en fonction de la volatilité des prix, elle 
+// est de plus en plus resserrée lorsque la volatilité diminue. 
 
-// cette branche du projet est "martingale_Forex" 
-// Le projet et sa description se trouvent sur Github à l'adresse
-// https://github.com/abhacid/Martingale_Forex
+
+// Nom : Martingale_Forex
+
+// Paramètres du robot
+// Money Management (%) : représente le risque maximum en % de perte du capital initial du compte de trading,
+// Take Profit			: représente le profit en PIPS si la position est gagnante sans utilisation de la martingale,
+// Stop Loss Factor		: représente le rapport (Stop Loss)/(Take Profit),
+// Martingale			: représente le coefficient de martingale : (nouveau volume) = (premier volume)*(1+Martingale),
+// Max Orders			: représente le nombre maximum de positions ouvertes.
+
+// Epreuve (il ne s'agit pas des meilleurs paramètres):
+// Symbol				= EURUSD,
+// Timeframe			= m5,
+// Version				= 1.3.1.2
+// Money Management (%) = 3 
+// Take Profit			= 10
+// Stop Loss Factor		= 5
+// Martingale			= 0.3 
+// Max Orders			= 6
+
+// Backtests : 
+// plateforme		:	cAlgo version 1.30.58489
+// Robot			:	Martingale_Forex v1.3.1.2
+// Capital initial	:	10 000€
+// flux de données	:	Tick data from server (accurate)
+// commission		:	30 per Million
+// Résultats		:	50 409 069€
+// entre le 01 Mai 2015 et le 21 Juin 2015 gain de 3830€.
+
 #endregion
 
 using System;
+using System.Collections.Generic;
 using cAlgo.API;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
@@ -59,14 +89,17 @@ namespace cAlgo.Robots
     public class Martingale_Forex : Robot
     {
         #region Parameters
-        [Parameter("Max Risk (%)", DefaultValue = 3, MinValue = 0)]
-        public double MaxRisk { get; set; }
+        [Parameter("Version", DefaultValue = "1.3.1.2")]
+        public string BotVersion { get; set; }
+
+        [Parameter("Money Management (%)", DefaultValue = 3, MinValue = 0)]
+        public double MoneyManagement { get; set; }
 
         [Parameter("Take Profit", DefaultValue = 10, MinValue = 5)]
         public double TakeProfit { get; set; }
 
-        [Parameter("Profit Factor", DefaultValue = 0.2, MinValue = 0.1)]
-        public double ProfitFactor { get; set; }
+        [Parameter("Stop Loss Factor", DefaultValue = 5, MinValue = 0.1)]
+        public double StopLossFactor { get; set; }
 
         [Parameter("Martingale", DefaultValue = 0.3, MinValue = 0)]
         public double MartingaleCoeff { get; set; }
@@ -78,31 +111,50 @@ namespace cAlgo.Robots
 
         private bool isRobotStopped;
         private string botName;
-        private const string botVersion = "1.3.1";
+        // le label permet de s'y retrouver parmis toutes les instances possibles.
         private string instanceLabel;
+
         private double stopLoss;
         private double firstLot;
+        private StaticPosition corner_position;
+
 
         protected override void OnStart()
         {
             botName = ToString();
-            instanceLabel = botName + "-" + botVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
+            instanceLabel = botName + "-" + BotVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
-            stopLoss = TakeProfit / ProfitFactor;
+            stopLoss = TakeProfit * StopLossFactor;
+            Positions.Opened += OnPositionOpened;
+
+            int corner = 1;
+
+            switch (corner)
+            {
+                case 1:
+                    corner_position = StaticPosition.TopLeft;
+                    break;
+                case 2:
+                    corner_position = StaticPosition.TopRight;
+                    break;
+                case 3:
+                    corner_position = StaticPosition.BottomLeft;
+                    break;
+                case 4:
+                    corner_position = StaticPosition.BottomRight;
+                    break;
+            }
+
+            ChartObjects.DrawText("BotVersion", botName + " Version : " + BotVersion, corner_position);
 
             Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
             Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
             Print("The current symbol has TickSize: {0}", Symbol.TickSize);
             Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
-
-            Positions.Opened += OnPositionOpened;
         }
 
         protected override void OnTick()
         {
-            double Bid = Symbol.Bid;
-            double Ask = Symbol.Ask;
-
             if (Trade.IsExecuting)
                 return;
 
@@ -115,7 +167,10 @@ namespace cAlgo.Robots
 
             if (positions.Length == 0)
             {
-                firstLot = GetVolume();
+				// Calcule le volume en fonction du money management pour un risque maximum et un stop loss donné.
+				// Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
+				double maxVolume = this.moneyManagement(MoneyManagement, stopLoss);
+				firstLot = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
 
                 if (firstLot <= 0)
                     throw new System.ArgumentException(String.Format("the 'first lot' : {0} parameter must be positive and not null", firstLot));
@@ -192,31 +247,30 @@ namespace cAlgo.Robots
             if (positions.Length < MaxOrders)
             {
                 long volume = Symbol.NormalizeVolume(firstLot * (1 + MartingaleCoeff * positions.Length), RoundingMode.ToNearest);
-				int countOfBars = (int)(25.0/positions.Length);
+                int countOfBars = (int)(25.0 / positions.Length);
 
-                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders - 1);
+                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders + 1);
                 int positionSide = GetPositionsSide();
 
                 switch (positionSide)
                 {
                     case 0:
                         double lastBuyPrice = FindLastPrice(TradeType.Buy);
-                        ChartObjects.DrawHorizontalLine("gridBuyLine", lastBuyPrice - pipstep * Symbol.PipSize, Colors.Green, 2);
+                        //   ChartObjects.DrawHorizontalLine("gridBuyLine", lastBuyPrice - pipstep * Symbol.PipSize, Colors.Green, 2);
                         if (Symbol.Ask < lastBuyPrice - pipstep * Symbol.PipSize)
                             executeOrder(TradeType.Buy, volume);
                         break;
 
                     case 1:
                         double lastSellPrice = FindLastPrice(TradeType.Sell);
-                        ChartObjects.DrawHorizontalLine("gridSellLine", lastSellPrice + pipstep * Symbol.PipSize, Colors.Red, 2);
+                        //      ChartObjects.DrawHorizontalLine("gridSellLine", lastSellPrice + pipstep * Symbol.PipSize, Colors.Red, 2);
                         if (Symbol.Bid > lastSellPrice + pipstep * Symbol.PipSize)
                             executeOrder(TradeType.Sell, volume);
                         break;
                 }
-
-
             }
 
+            ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
         }
 
         // You can modify the condition of entry here.
@@ -241,22 +295,12 @@ namespace cAlgo.Robots
 
         private TradeResult executeOrder(TradeType tradeType, double volume)
         {
-            Print("normalized volume : {0}", Symbol.NormalizeVolume(volume, RoundingMode.ToNearest));
+            //Print("normalized volume : {0}", Symbol.NormalizeVolume(volume, RoundingMode.ToNearest));
             return ExecuteMarketOrder(tradeType, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), instanceLabel);
         }
 
         /// <summary>
-        /// Calcule le volume normalisé en fonction du money management pour un risque maximum et un stop loss donné.
-        /// </summary>
-        /// <returns>Le volume normalisé arrondi inférieurement</returns>
-        private double GetVolume()
-        {
-            double maxVolume = this.moneyManagement(MaxRisk, stopLoss);
-            //Print("maxrisk/100 {0}", (MaxRisk / 100.0));
-            double volume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
-
-            return volume;
-        }
+       
 
         private Position[] GetPositions()
         {
@@ -334,6 +378,20 @@ namespace cAlgo.Robots
             Result = (int)((HighestPrice - LowestPrice) / Symbol.PipSize / division);
 
             return Result;
+        }
+
+        private double savedMaxBalance;
+        private List<double> drawdown = new List<double>();
+        private double GetMaxDrawdown()
+        {
+            savedMaxBalance = Math.Max(savedMaxBalance, Account.Balance);
+
+            drawdown.Add((savedMaxBalance - Account.Balance) / savedMaxBalance * 100);
+            drawdown.Sort();
+
+            double maxDrawdown = drawdown[drawdown.Count - 1];
+
+            return maxDrawdown;
         }
 
         private double FindLastPrice(TradeType tradeType)
