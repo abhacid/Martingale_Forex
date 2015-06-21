@@ -24,11 +24,11 @@ Les statistiques depuis le 1er Janvier 2015 sur la version 175998c peuvent être
 [AlgoChart](http://www.algochart.com/report/z7uts).
 
 ## Utilisation
-D'un point de vue pratique, il est recommandé de cloner la solution dans le répertoire C:\Users\{user}\Documents\cAlgo\Sources\Robots. Cela permettra une intégration parfaite entre cAlgo, Visual studio et Github.
+D'un point de vue pratique, il est recommandé de cloner la solution dans le répertoire `C:\Users\{user}\Documents\cAlgo\Sources\Robots`. Cela permettra une intégration parfaite entre cAlgo, Visual studio et Github.
 Après avoir compilé le programme sous visual studio 2013, allez dans cAlgo et créez une instance EURUSD avec les paramètres se 
 trouvant dans `Backtests and optimisations`.
 
-Vous devez également cloner la librairie [cAlgoBot](https://github.com/abhacid/cAlgoBot).
+Vous devez également cloner la librairie [cAlgoBot](https://github.com/abhacid/cAlgoBot) dans votre dossier `C:\Users\{user}\Documents\`.
 
 ## Les paramètres à utiliser se trouvent dans le dossier `Backtests and optimisations`
 
