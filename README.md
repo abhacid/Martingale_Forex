@@ -34,11 +34,17 @@ Vous devez également cloner la librairie [cAlgoBot](https://github.com/abhacid/
 Les paramètres à utiliser se trouvent dans le dossier `Backtests and optimisations`.
 
 Pour effectuer les optimisations prenez comme paramètres :
+
 Starting capital	: 1000
+
 Commissions			: 30 pour EURUSD et 42 pour GBPUSD (pour d'autres instruments ce sera différent)
+
 1)Maximiser			: le Net Profit
+
 2)Minimiser			: le Drawdown en %
+
 3)Maximiser			: les trades gagnants.
+
 
 
 
