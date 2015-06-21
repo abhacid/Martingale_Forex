@@ -28,53 +28,6 @@
 // Ce projet permet d'écrire un robot de trading basé sur un exemple Robot_Forex initial écrit par 
 // imWald sur le dépôt de code source CTDN.
 
-// C'est suite à une demande d'un trader Antoine C qui souhaitait ajouter un stop-Loss à ce robot que
-// j'ai commencé l'étude puis la modification de ce dernier. De fil en aiguille j'y ai ajouté d'autres 
-// caractéristiques et améliorations.
-
-// Ce robot est une martingale cela signifie qu'il augmente le volume de ses prises de positions
-// lorsqu'il perd afin de moyenner à la hausse ou à la baisse selon qu'il achète ou qu'il vend. 
-// le coefficient de martingale martingaleCoeff permet de définir le multiplicateur de volume; 
-// s'il est à 1 le volume augmente d'une unité du volume initial FirstLot ou de façon générale 
-// il augmente de martingaleCoeff*FirstLot.
-
-//Un stop loss et un take profit est appliqué sur chacune des positions mais en se basant sur 
-//le prix moyen, c'est à dire le barycentre des prises de positions : somme(prix*volume)/somme(volume).
-
-// Pour décider à partir de quel niveau de perte on prends une nouvelle position, on estime 
-// l'écart prix max-prix min sur une période de '25.0/(Nombre de positions)' bougies et on divise cet écart 
-// par MaxOrders ce qui donne une grille dont l'écartement varie en fonction de la volatilité des prix, elle 
-// est de plus en plus resserrée lorsque la volatilité diminue. 
-
-
-// Nom : Martingale_Forex
-
-// Paramètres du robot
-// Money Management (%) : représente le risque maximum en % de perte du capital initial du compte de trading,
-// Take Profit			: représente le profit en PIPS si la position est gagnante sans utilisation de la martingale,
-// Stop Loss Factor		: représente le rapport (Stop Loss)/(Take Profit),
-// Martingale			: représente le coefficient de martingale : (nouveau volume) = (premier volume)*(1+Martingale),
-// Max Orders			: représente le nombre maximum de positions ouvertes.
-
-// Epreuve (il ne s'agit pas des meilleurs paramètres):
-// Symbol				= EURUSD,
-// Timeframe			= m5,
-// Version				= 1.3.1.2
-// Money Management (%) = 3 
-// Take Profit			= 10
-// Stop Loss Factor		= 5
-// Martingale			= 0.3 
-// Max Orders			= 6
-
-// Backtests : 
-// plateforme		:	cAlgo version 1.30.58489
-// Robot			:	Martingale_Forex v1.3.1.2
-// Capital initial	:	10 000€
-// Flux de données	:	Tick data from server (accurate)
-// Commission		:	30 per Million
-// Résultats		:	50 409 069€
-// durée            :   entre le 01 Mai 2015 et le 21 Juin 2015.
-
 #endregion
 
 using System;
@@ -89,9 +42,6 @@ namespace cAlgo.Robots
     public class Martingale_Forex : Robot
     {
         #region Parameters
-        [Parameter("Version", DefaultValue = "1.3.1.2")]
-        public string BotVersion { get; set; }
-
         [Parameter("Money Management (%)", DefaultValue = 3, MinValue = 0)]
         public double MoneyManagement { get; set; }
 
@@ -117,10 +67,13 @@ namespace cAlgo.Robots
         private double stopLoss;
         private double firstLot;
         private StaticPosition corner_position;
+		private string BotVersion= "1.3.2.0";
+        private bool DEBUG;
 
 
         protected override void OnStart()
         {
+            DEBUG = true;
             botName = ToString();
             instanceLabel = botName + "-" + BotVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
@@ -145,7 +98,9 @@ namespace cAlgo.Robots
                     break;
             }
 
-            ChartObjects.DrawText("BotVersion", botName + " Version : " + BotVersion, corner_position);
+            if (!DEBUG)
+                ChartObjects.DrawText("BotVersion", botName + " Version : " + BotVersion, corner_position);
+
 
             Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
             Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
@@ -196,19 +151,6 @@ namespace cAlgo.Robots
             }
         }
 
-        private void SendFirstOrder(double OrderVolume)
-        {
-            switch (GetStdIlanSignal())
-            {
-                case 0:
-                    executeOrder(TradeType.Buy, OrderVolume);
-                    break;
-                case 1:
-                    executeOrder(TradeType.Sell, OrderVolume);
-                    break;
-            }
-        }
-
         private void OnPositionOpened(PositionOpenedEventArgs args)
         {
             double? stopLossPrice = null;
@@ -240,6 +182,19 @@ namespace cAlgo.Robots
             }
         }
 
+        private void SendFirstOrder(double OrderVolume)
+        {
+            switch (GetSignal())
+            {
+                case 0:
+                    executeOrder(TradeType.Buy, OrderVolume);
+                    break;
+                case 1:
+                    executeOrder(TradeType.Sell, OrderVolume);
+                    break;
+            }
+        }
+
         private void ControlSeries()
         {
             Position[] positions = GetPositions();
@@ -249,32 +204,39 @@ namespace cAlgo.Robots
                 long volume = Symbol.NormalizeVolume(firstLot * (1 + MartingaleCoeff * positions.Length), RoundingMode.ToNearest);
                 int countOfBars = (int)(25.0 / positions.Length);
 
-                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders + 1);
+                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders - 1);
                 int positionSide = GetPositionsSide();
 
                 switch (positionSide)
                 {
                     case 0:
-                        double lastBuyPrice = FindLastPrice(TradeType.Buy);
-                        //   ChartObjects.DrawHorizontalLine("gridBuyLine", lastBuyPrice - pipstep * Symbol.PipSize, Colors.Green, 2);
+                        double lastBuyPrice = GetLastPrice(TradeType.Buy);
+
+                        if (!DEBUG)
+                            ChartObjects.DrawHorizontalLine("gridBuyLine", lastBuyPrice - pipstep * Symbol.PipSize, Colors.Green, 2);
+
                         if (Symbol.Ask < lastBuyPrice - pipstep * Symbol.PipSize)
                             executeOrder(TradeType.Buy, volume);
                         break;
 
                     case 1:
-                        double lastSellPrice = FindLastPrice(TradeType.Sell);
-                        //      ChartObjects.DrawHorizontalLine("gridSellLine", lastSellPrice + pipstep * Symbol.PipSize, Colors.Red, 2);
+                        double lastSellPrice = GetLastPrice(TradeType.Sell);
+
+                        if (!DEBUG)
+                            ChartObjects.DrawHorizontalLine("gridSellLine", lastSellPrice + pipstep * Symbol.PipSize, Colors.Red, 2);
+
                         if (Symbol.Bid > lastSellPrice + pipstep * Symbol.PipSize)
                             executeOrder(TradeType.Sell, volume);
                         break;
                 }
             }
 
-            ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
+            if (!DEBUG)
+                ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
         }
 
         // You can modify the condition of entry here.
-        private int GetStdIlanSignal()
+        private int GetSignal()
         {
             int Result = -1;
             int LastBarIndex = MarketSeries.Close.Count - 2;
@@ -298,9 +260,6 @@ namespace cAlgo.Robots
             //Print("normalized volume : {0}", Symbol.NormalizeVolume(volume, RoundingMode.ToNearest));
             return ExecuteMarketOrder(tradeType, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), instanceLabel);
         }
-
-        /// <summary>
-
 
         private Position[] GetPositions()
         {
@@ -394,7 +353,7 @@ namespace cAlgo.Robots
             return maxDrawdown;
         }
 
-        private double FindLastPrice(TradeType tradeType)
+        private double GetLastPrice(TradeType tradeType)
         {
             double LastPrice = 0;
 
