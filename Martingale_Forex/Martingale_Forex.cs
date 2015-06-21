@@ -27,6 +27,8 @@
 //
 // Ce projet permet d'écrire un robot de trading basé sur un exemple Robot_Forex initial écrit par 
 // imWald sur le dépôt de code source CTDN.
+//
+// Pour résumer c'est une martingale avec stop loss et money management.
 
 #endregion
 
@@ -42,19 +44,19 @@ namespace cAlgo.Robots
     public class Martingale_Forex : Robot
     {
         #region Parameters
-        [Parameter("Money Management (%)", DefaultValue = 3, MinValue = 0)]
+        [Parameter("Money Management (%)", DefaultValue = 1.6, MinValue = 0)]
         public double MoneyManagement { get; set; }
 
-        [Parameter("Take Profit", DefaultValue = 10, MinValue = 5)]
+        [Parameter("Take Profit", DefaultValue = 5, MinValue = 5)]
         public double TakeProfit { get; set; }
 
-        [Parameter("Stop Loss Factor", DefaultValue = 5, MinValue = 0.1)]
+        [Parameter("Stop Loss Factor", DefaultValue = 5.5, MinValue = 0.1)]
         public double StopLossFactor { get; set; }
 
-        [Parameter("Martingale", DefaultValue = 0.3, MinValue = 0)]
+        [Parameter("Martingale", DefaultValue = 0.5, MinValue = 0)]
         public double MartingaleCoeff { get; set; }
 
-        [Parameter("Max Orders", DefaultValue = 6, MinValue = 2)]
+        [Parameter("Max Orders", DefaultValue = 2, MinValue = 2)]
         public int MaxOrders { get; set; }
 
         #endregion
@@ -67,7 +69,7 @@ namespace cAlgo.Robots
         private double stopLoss;
         private double firstLot;
         private StaticPosition corner_position;
-		private string BotVersion= "1.3.2.0";
+        private string BotVersion = "1.3.2.0";
         private bool DEBUG;
 
 
