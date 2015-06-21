@@ -45,6 +45,10 @@ Commissions			: 30 pour EURUSD et 42 pour GBPUSD (pour d'autres instruments ce s
 
 3)Maximiser			: les trades gagnants.
 
+## Copy Trader
+Vous pouvez copier la stratégie à partir du site 
+https://cm.spotware.com/strategy/56296
+
 
 
 
