@@ -20,8 +20,8 @@ Pour décider à partir de quel niveau de perte on prends une nouvelle position,
 Les cours fluctuent à la hausse ou à la baisse, mais corrigent régulièrement, c'est ce phénomène de correction qu'utilise ce robot en effet il augmente son exposition lorsqu'il perd de telle façon que la dernière prise de position sera la plus grande en volume, par conséquent dès que la correction arrive les dernières prises de positions permettent d'engranger des gains supérieur aux pertes des premières prises positions. D'autre part le Take profit étant basé sur la moyenne des positions, il est de ce fait atteint plus tôt et diminue de ce fait le risque de pertes importantes.
 
 ## Statistiques
-Les statistiques depuis le 1er Janvier 2015 sur la version 175998c peuvent être visualisés sur :
-[AlgoChart](http://www.algochart.com/report/z7uts).
+Les dernières statistiques (version 1.3.2.0) peuvent être visualisés sur :
+[AlgoChart](http://www.algochart.com/report/ozdzm).
 
 ## Utilisation
 D'un point de vue pratique, il est recommandé de cloner la solution dans le répertoire `C:\Users\{user}\Documents\cAlgo\Sources\Robots`. Cela permettra une intégration parfaite entre cAlgo, Visual studio et Github.
@@ -30,7 +30,9 @@ trouvant dans `Backtests and optimisations`.
 
 Vous devez également cloner la librairie [cAlgoBot](https://github.com/abhacid/cAlgoBot) dans votre dossier `C:\Users\{user}\Documents\`.
 
-## Les paramètres à utiliser se trouvent dans le dossier `Backtests and optimisations`
+## Paramètres
+Les paramètres à utiliser se trouvent dans le dossier `Backtests and optimisations`.
+
 
 
 
