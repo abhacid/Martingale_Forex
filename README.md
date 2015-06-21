@@ -25,40 +25,12 @@ Les statistiques depuis le 1er Janvier 2015 sur la version 175998c peuvent être
 
 ## Utilisation
 D'un point de vue pratique, il est recommandé de cloner la solution dans le répertoire C:\Users\{user}\Documents\cAlgo\Sources\Robots. Cela permettra une intégration parfaite entre cAlgo, Visual studio et Github.
-Après avoir compilé le programme sous visual studio 2013, allez dans cAlgo et créez une instance EURUSD avec les paramètres suivants (non optimisés) : 
+Après avoir compilé le programme sous visual studio 2013, allez dans cAlgo et créez une instance EURUSD avec les paramètres se 
+trouvant dans `Backtests and optimisations`.
 
-## Epreuve (il ne s'agit pas des meilleurs paramètres):
+Vous devez également cloner la librairie [cAlgoBot](https://github.com/abhacid/cAlgoBot).
 
-_**Symbol = EURUSD,**_
-
-_**Timeframe = m5,**_
-
-_**Money Management (%) = 3**_ représente le risque maximum en % de perte du capital initial du compte de trading,
-
-_**Take Profit = 10**_ représente le profit en PIPS si la position est gagnante sans utilisation de la martingale,
-
-_**Profit Factor = 5**_ représente le rapport (Stop Loss)/(Take Profit),
-
-_**Martingale = 0.3**_ représente le coefficient de martingale : volum2 = volum1*(1+Martingale),
-
-_**Max Orders = 6**_ représente le nombre maximum de positions ouvertes.
-
-## Backtests : 
-
- _**plateforme		:	cAlgo version 1.30.58489
-
- _**Robot			:	Martingale_Forex v1.3.1.2
-
- _**Capital initial	:	10 000€
-
- _**Flux de données	:	Tick data from server (accurate)
-
- _**Commission		:	30 per Million
-
- _**Résultats		:	50 409 069€
-
- _**Durée                  :   entre le 01 Mai 2015 et le 21 Juin 2015.
-
+## Les paramètres à utiliser se trouvent dans le dossier `Backtests and optimisations`
 
 
 
