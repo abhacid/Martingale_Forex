@@ -1,0 +1,10 @@
+﻿[ChartParameters]
+Symbol = USDJPY
+Timeframe = m4
+
+[cBotParameters]
+MoneyManagement = 2.1
+TakeProfit = 5.3
+StopLossFactor = 2.6
+MartingaleCoeff = 0
+MaxOrders = 2

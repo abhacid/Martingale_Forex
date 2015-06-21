@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyProduct("Martingale_Forex")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyTrademark("(c) 2015 Abdallah Hacid")]
 [assembly: AssemblyCulture("")]
 
 [assembly: ComVisible(false)]

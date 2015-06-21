@@ -69,7 +69,7 @@ namespace cAlgo.Robots
         private double stopLoss;
         private double firstLot;
         private StaticPosition corner_position;
-        private string BotVersion = "1.3.2.0";
+        private string BotVersion = "1.3.3.0";
         private bool DEBUG;
 
 
