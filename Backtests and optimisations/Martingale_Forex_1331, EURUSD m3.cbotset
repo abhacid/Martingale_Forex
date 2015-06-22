@@ -1,0 +1,10 @@
+﻿[ChartParameters]
+Symbol = EURUSD
+Timeframe = m3
+
+[cBotParameters]
+MoneyManagement = 0.7
+TakeProfit = 6.4
+StopLossFactor = 5.5
+MartingaleCoeff = 0.7
+MaxOrders = 6
