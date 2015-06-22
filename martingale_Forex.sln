@@ -5,8 +5,6 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Martingale_Forex", "Martingale_Forex\Martingale_Forex.csproj", "{A85418F4-AC57-4E5E-804A-6610F778042A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\..\..\cAlgoBots\Sources\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C48D7DC6-1536-4591-A2AF-D730653D8860}"
 	ProjectSection(SolutionItems) = preProject
 		Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG = Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG
@@ -31,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations
 		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset
 		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
