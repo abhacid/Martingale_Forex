@@ -69,13 +69,13 @@ namespace cAlgo.Robots
         private double stopLoss;
         private double firstLot;
         private StaticPosition corner_position;
-        private string BotVersion = "1.3.3.0";
+        private string BotVersion = "1.3.3.1";
         private bool DEBUG;
 
 
         protected override void OnStart()
         {
-            DEBUG = true;
+            DEBUG = false;
             botName = ToString();
             instanceLabel = botName + "-" + BotVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
@@ -206,9 +206,9 @@ namespace cAlgo.Robots
                 long volume = Symbol.NormalizeVolume(firstLot * (1 + MartingaleCoeff * positions.Length), RoundingMode.ToNearest);
                 int countOfBars = (int)(25.0 / positions.Length);
 
-                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders - 1);
+                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders+1);
                 int positionSide = GetPositionsSide();
-
+				
                 switch (positionSide)
                 {
                     case 0:
@@ -233,8 +233,8 @@ namespace cAlgo.Robots
                 }
             }
 
-            if (!DEBUG)
-                ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
+            //if (!DEBUG)
+            //	ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
         }
 
         // You can modify the condition of entry here.
