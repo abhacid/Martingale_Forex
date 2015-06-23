@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations", "Backtests and optimisations", "{C6CC3FA2-017D-4C95-A65E-4702BC76CDC3}"
 	ProjectSection(SolutionItems) = preProject
+		Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG = Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset
