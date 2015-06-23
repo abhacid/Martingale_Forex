@@ -47,7 +47,7 @@ Commissions			: 30 pour EURUSD et 42 pour GBPUSD (pour d'autres instruments ce s
 
 ## Copy Trader
 Vous pouvez copier la stratégie à partir du site 
-https://cm.spotware.com/strategy/56296
+https://cm.spotware.com/account/196164
 
 
 
