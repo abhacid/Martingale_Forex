@@ -34,6 +34,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArgunesStrategy", "..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Strategies\ArgunesStrategy\ArgunesStrategy.csproj", "{1C394650-DA14-4A31-9721-13F225797377}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoubleCandleStrategy", "..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Strategies\DoubleCandleStrategy\DoubleCandleStrategy.csproj", "{3A72E9D5-59D4-453F-9DEB-416357BCA25F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +52,14 @@ Global
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C394650-DA14-4A31-9721-13F225797377}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C394650-DA14-4A31-9721-13F225797377}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C394650-DA14-4A31-9721-13F225797377}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C394650-DA14-4A31-9721-13F225797377}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

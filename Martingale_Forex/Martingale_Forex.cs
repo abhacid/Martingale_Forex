@@ -38,6 +38,7 @@ using System.Diagnostics;
 using cAlgo.API;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
+using cAlgo.Strategies;
 
 namespace cAlgo.Robots
 {
@@ -65,26 +66,43 @@ namespace cAlgo.Robots
 
         #endregion
 
+		#region cBot variables
+
         private bool _isRobotStopped;
         private string _botName;
         private string _botVersion = "1.3.4.0";
-		private string _instanceLabel;					// le label permet de s'y retrouver parmis toutes les instances possibles.
-		private TradeType? _tradesType = null;			// Est une suite d'achat (Buy) ou une suite de vente (Sell).
-        private double _firstVolume;					// premier volume utilisé.
+
+         // le label permet de s'y retrouver parmis toutes les instances possibles.
+		private string _instanceLabel;
+
+         // Est une suite d'achat (Buy) ou une suite de vente (Sell).
+		private TradeType? _tradesType = null;
+
+        // premier volume utilisé.
+		private double _firstVolume;
+		List<Strategy> _strategies;
         private StaticPosition _cornerPosition;
         private bool _debug;
-		private int nPositions;
+        private int nPositions;
+		#endregion
+
+
 
 
         protected override void OnStart()
         {
+			base.OnStart();
+
             _debug = false;
-			nPositions = 0;
+            nPositions = 0;
             _botName = ToString();
             _instanceLabel = _botName + "-" + _botVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
 
             Positions.Opened += OnPositionOpened;
-			Positions.Closed += OnPositionClosed;
+            Positions.Closed += OnPositionClosed;
+
+			_strategies = new List<Strategy>();
+			_strategies.Add(new DoubleCandleStrategy(this,14,0));
 
             int corner = 1;
 
@@ -106,13 +124,15 @@ namespace cAlgo.Robots
 
             ChartObjects.DrawText("BotVersion", _botName + " Version : " + _botVersion, _cornerPosition);
 
-			if(_debug)
-			{
-				Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
-				Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
-				Print("The current symbol has TickSize: {0}", Symbol.TickSize);
-				Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
-			}
+
+
+            if (_debug)
+            {
+                Print("The current symbol has PipSize of: {0}", Symbol.PipSize);
+                Print("The current symbol has PipValue of: {0}", Symbol.PipValue);
+                Print("The current symbol has TickSize: {0}", Symbol.TickSize);
+                Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
+            }
         }
 
         protected override void OnTick()
@@ -132,10 +152,10 @@ namespace cAlgo.Robots
                 // Calcule le volume en fonction du money management pour un risque maximum et un stop loss donné.
                 // Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
                 double maxVolume = this.moneyManagement(MoneyManagement, StopLoss);
-				if(MartingaleBuy)
-					_firstVolume = maxVolume;
-				else
-					_firstVolume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
+                if (MartingaleBuy)
+                    _firstVolume = maxVolume;
+                else
+                    _firstVolume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
 
                 if (_firstVolume <= 0)
                     throw new System.ArgumentException(String.Format("the 'first lot' : {0} parameter must be positive and not null", _firstVolume));
@@ -162,21 +182,21 @@ namespace cAlgo.Robots
 
         private void OnPositionOpened(PositionOpenedEventArgs args)
         {
-			nPositions++;
+            nPositions++;
 
             double? StopLossPrice = null;
             double? takeProfitPrice = null;
-			double averagePrice = GetAveragePrice();
+            double averagePrice = GetAveragePrice();
 
-            switch (GetPositionsSide())
+            switch (_tradesType)
             {
-                case 0:
-					takeProfitPrice = averagePrice + TakeProfit * Symbol.PipSize;
-					StopLossPrice = averagePrice - StopLoss * Symbol.PipSize;
+                case TradeType.Buy:
+                    takeProfitPrice = averagePrice + TakeProfit * Symbol.PipSize;
+                    StopLossPrice = averagePrice - StopLoss * Symbol.PipSize;
                     break;
-                case 1:
-					takeProfitPrice = averagePrice - TakeProfit * Symbol.PipSize;
-					StopLossPrice = averagePrice + StopLoss * Symbol.PipSize;
+                case TradeType.Sell:
+                    takeProfitPrice = averagePrice - TakeProfit * Symbol.PipSize;
+                    StopLossPrice = averagePrice + StopLoss * Symbol.PipSize;
                     break;
             }
 
@@ -192,72 +212,71 @@ namespace cAlgo.Robots
             }
         }
 
-		private void OnPositionClosed(PositionClosedEventArgs args)
-		{
-			nPositions--;
-		}
-
-        private void executeFirstOrder(double OrderVolume)
+        private void OnPositionClosed(PositionClosedEventArgs args)
         {
-			_tradesType = GetSignal();
-                     
-			if (_tradesType.HasValue)
-				executeOrder(_tradesType, OrderVolume);
+            nPositions--;
+        }
+
+        private void executeFirstOrder(double volume)
+        {
+            _tradesType = this.signal(_strategies);
+
+            if (_tradesType.HasValue)
+                executeOrder(_tradesType, volume);
         }
 
         private void ControlSeries()
         {
-			Debug.Assert(nPositions > 0 );
+            Debug.Assert(nPositions > 0);
 
             if (nPositions < MaxOrders)
             {
                 long volume = Symbol.NormalizeVolume(_firstVolume * (1 + MartingaleCoeff * nPositions), RoundingMode.ToNearest);
-                int countOfBars = (int)(25.0 / nPositions);
 
-                int pipstep = GetDynamicPipstep(countOfBars, MaxOrders+1);
+				int pipstep = (int)((MarketSeries.volatility(14) / Symbol.PipSize) / MaxOrders);
 
-				if (MartingaleBuy)
-				{
-						double? firstPrice = GetFirstPrice();
+                if (MartingaleBuy)
+                {
+                    double? firstPrice = GetFirstPrice();
 
-						switch(_tradesType)
-						{
-							case TradeType.Buy:
-								ChartObjects.DrawHorizontalLine("gridBuyLine", firstPrice.Value + pipstep * Symbol.PipSize, Colors.Green, 2);
+                    switch (_tradesType)
+                    {
+                        case TradeType.Buy:
+                            ChartObjects.DrawHorizontalLine("gridBuyLine", firstPrice.Value + pipstep * Symbol.PipSize, Colors.Green, 2);
 
-								if(Symbol.Ask >= firstPrice.Value + pipstep * Symbol.PipSize)
-									executeOrder(TradeType.Buy, volume);
-								break;
+                            if (Symbol.Ask >= firstPrice.Value + pipstep * Symbol.PipSize)
+                                executeOrder(TradeType.Buy, volume);
+                            break;
 
-							case TradeType.Sell:
-								ChartObjects.DrawHorizontalLine("gridSellLine", firstPrice.Value - pipstep * Symbol.PipSize, Colors.Red, 2);
+                        case TradeType.Sell:
+                            ChartObjects.DrawHorizontalLine("gridSellLine", firstPrice.Value - pipstep * Symbol.PipSize, Colors.Red, 2);
 
-								if(Symbol.Bid <= firstPrice.Value + pipstep * Symbol.PipSize)
-									executeOrder(TradeType.Sell, volume);
-								break;
-						}
-				}
-				else
-				{
-						double? lastPrice = GetLastPrice();
+                            if (Symbol.Bid <= firstPrice.Value + pipstep * Symbol.PipSize)
+                                executeOrder(TradeType.Sell, volume);
+                            break;
+                    }
+                }
+                else
+                {
+                    double? lastPrice = GetLastPrice();
 
-							switch(_tradesType)
-							{
-								case TradeType.Buy:
-									ChartObjects.DrawHorizontalLine("gridBuyLine", lastPrice.Value - pipstep * Symbol.PipSize, Colors.Green, 2);
+                    switch (_tradesType)
+                    {
+                        case TradeType.Buy:
+                            ChartObjects.DrawHorizontalLine("gridBuyLine", lastPrice.Value - pipstep * Symbol.PipSize, Colors.Green, 2);
 
-									if(Symbol.Ask <= lastPrice.Value - pipstep * Symbol.PipSize)
-										executeOrder(TradeType.Buy, volume);
-									break;
+                            if (Symbol.Ask <= lastPrice.Value - pipstep * Symbol.PipSize)
+                                executeOrder(TradeType.Buy, volume);
+                            break;
 
-								case TradeType.Sell:
-									ChartObjects.DrawHorizontalLine("gridSellLine", lastPrice.Value + pipstep * Symbol.PipSize, Colors.Red, 2);
+                        case TradeType.Sell:
+                            ChartObjects.DrawHorizontalLine("gridSellLine", lastPrice.Value + pipstep * Symbol.PipSize, Colors.Red, 2);
 
-									if(Symbol.Bid >= lastPrice.Value + pipstep * Symbol.PipSize)
-										executeOrder(TradeType.Sell, volume);
-									break;
-							}				
-				}
+                            if (Symbol.Bid >= lastPrice.Value + pipstep * Symbol.PipSize)
+                                executeOrder(TradeType.Sell, volume);
+                            break;
+                    }
+                }
 
 
 
@@ -267,32 +286,14 @@ namespace cAlgo.Robots
             //	ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
         }
 
-        // You can modify the condition of entry here.
-        private TradeType? GetSignal()
-        {
-            int LastBarIndex = MarketSeries.Close.Count - 2;
-            int PrevBarIndex = LastBarIndex - 1;
-
-            // two up candles for a buy signal.
-            if (MarketSeries.Close[LastBarIndex] > MarketSeries.Open[LastBarIndex])
-                if (MarketSeries.Close[PrevBarIndex] > MarketSeries.Open[PrevBarIndex])
-                    return TradeType.Buy;
-
-            // two down candles for a sell signal.
-            if (MarketSeries.Close[LastBarIndex] < MarketSeries.Open[LastBarIndex])
-                if (MarketSeries.Close[PrevBarIndex] < MarketSeries.Open[PrevBarIndex])
-                    return TradeType.Sell;
-
-            return null;
-        }
 
         private TradeResult executeOrder(TradeType? tradeType, double volume)
         {
             //Print("normalized volume : {0}", Symbol.NormalizeVolume(volume, RoundingMode.ToNearest));
-			if(tradeType.HasValue)
-				return ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel);
-			else
-				return null;
+            if (tradeType.HasValue)
+                return ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel);
+            else
+                return null;
         }
 
         private Position[] GetPositions()
@@ -307,110 +308,65 @@ namespace cAlgo.Robots
 
             foreach (Position position in GetPositions())
             {
-				sum += position.EntryPrice * position.Volume;
+                sum += position.EntryPrice * position.Volume;
                 count += position.Volume;
             }
 
-			if(sum > 0 && count > 0)
-				return  sum / count;
-			else
-				throw new System.ArgumentException("GetAveragePrice() : There is no open position");
+            if (sum > 0 && count > 0)
+                return sum / count;
+            else
+                throw new System.ArgumentException("GetAveragePrice() : There is no open position");
         }
 
-        private int GetPositionsSide()
-        {
-            int Result = -1;
-            int BuySide = 0, SellSide = 0;
-            Position[] positions = GetPositions();
-
-            foreach (Position position in positions)
-            {
-                if (position.TradeType == TradeType.Buy)
-                    BuySide++;
-
-                if (position.TradeType == TradeType.Sell)
-                    SellSide++;
-            }
-
-            if (BuySide == positions.Length)
-                Result = 0;
-
-            if (SellSide == positions.Length)
-                Result = 1;
-
-            return Result;
-        }
-
-        private int GetDynamicPipstep(int CountOfBars, int division)
-        {
-            double HighestPrice = 0, LowestPrice = 0;
-            int StartBar = MarketSeries.Close.Count - 2 - CountOfBars;
-            int EndBar = MarketSeries.Close.Count - 2;
-
-            for (int i = StartBar; i < EndBar; i++)
-            {
-
-                if (MarketSeries.High[i] > HighestPrice || HighestPrice == 0 )
-                    HighestPrice = MarketSeries.High[i];
-
-                if (MarketSeries.Low[i] < LowestPrice || LowestPrice == 0)
-                    LowestPrice = MarketSeries.Low[i];
-            }
-
-           return (int)((HighestPrice - LowestPrice) / Symbol.PipSize / division);
-        }
-
-        private double savedMaxBalance;
-        private List<double> drawdown = new List<double>();
+        private double _savedMaxBalance;
+        private List<double> _drawdowns = new List<double>();
         private double GetMaxDrawdown()
         {
-            savedMaxBalance = Math.Max(savedMaxBalance, Account.Balance);
+            _savedMaxBalance = Math.Max(_savedMaxBalance, Account.Balance);
 
-            drawdown.Add((savedMaxBalance - Account.Balance) / savedMaxBalance * 100);
-            drawdown.Sort();
+            _drawdowns.Add((_savedMaxBalance - Account.Balance) / _savedMaxBalance * 100);
+            _drawdowns.Sort();
 
-            double maxDrawdown = drawdown[drawdown.Count - 1];
+            double maxDrawdown = _drawdowns[_drawdowns.Count - 1];
 
             return maxDrawdown;
         }
 
         private double? GetLastPrice()
         {
-			double lastPrice = 0;
+            double lastPrice = 0;
 
-			if(_tradesType.HasValue)
-				foreach(Position position in GetPositions())
-				{
-					if(_tradesType.isBuy() && (position.EntryPrice < lastPrice || lastPrice == 0))
-						lastPrice = position.EntryPrice;
-					else
-						if(position.EntryPrice > lastPrice || lastPrice == 0)
-							lastPrice = position.EntryPrice;
-				}
-			else
-				return null;
+            if (_tradesType.HasValue)
+                foreach (Position position in GetPositions())
+                {
+                    if (_tradesType.isBuy() && (position.EntryPrice < lastPrice || lastPrice == 0))
+                        lastPrice = position.EntryPrice;
+                    else if (position.EntryPrice > lastPrice || lastPrice == 0)
+                        lastPrice = position.EntryPrice;
+                }
+            else
+                return null;
 
-			return lastPrice;
+            return lastPrice;
         }
 
-		private double? GetFirstPrice()
-		{
-			double firstPrice = 0;
+        private double? GetFirstPrice()
+        {
+            double firstPrice = 0;
 
-			if(_tradesType.HasValue)
-				foreach(Position position in GetPositions())
-				{
-					if(_tradesType.isBuy() && (position.EntryPrice > firstPrice || firstPrice == 0))
-						firstPrice = position.EntryPrice;
-					else 
-						if (position.EntryPrice < firstPrice || firstPrice == 0)
-							firstPrice = position.EntryPrice;
-				}
-			else
-				return null;
+            if (_tradesType.HasValue)
+                foreach (Position position in GetPositions())
+                {
+                    if (_tradesType.isBuy() && (position.EntryPrice > firstPrice || firstPrice == 0))
+                        firstPrice = position.EntryPrice;
+                    else if (position.EntryPrice < firstPrice || firstPrice == 0)
+                        firstPrice = position.EntryPrice;
+                }
+            else
+                return null;
 
-			return firstPrice;
-		}
+            return firstPrice;
+        }
 
 
     }
