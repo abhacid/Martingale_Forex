@@ -5,17 +5,16 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Martingale_Forex", "Martingale_Forex\Martingale_Forex.csproj", "{A85418F4-AC57-4E5E-804A-6610F778042A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\..\..\cAlgoBots\Sources\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C48D7DC6-1536-4591-A2AF-D730653D8860}"
 	ProjectSection(SolutionItems) = preProject
 		Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG = Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG
 		README.md = README.md
-		version-1331.txt = version-1331.txt
+		version-1340.txt = version-1340.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations", "Backtests and optimisations", "{C6CC3FA2-017D-4C95-A65E-4702BC76CDC3}"
 	ProjectSection(SolutionItems) = preProject
+		Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG = Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset
@@ -30,7 +29,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations
 		Backtests and optimisations\Martingale_Forex_1330, USDJPY m4-NetProfit 1 073 193 442-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1330, USDJPY m4-NetProfit 1 073 193 442-20150518-20150619.JPG
 		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset
 		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG
+		Backtests and optimisations\Martingale_Forex_1440, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1440, EURUSD m3.cbotset
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
