@@ -9,7 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG = Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG
 		README.md = README.md
-		version-1331.txt = version-1331.txt
+		version-1340.txt = version-1340.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations", "Backtests and optimisations", "{C6CC3FA2-017D-4C95-A65E-4702BC76CDC3}"

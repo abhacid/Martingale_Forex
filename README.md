@@ -5,7 +5,7 @@
 ***
 
 ## Sommaire
-Ce projet permet d'écrire un robot de trading basé sur un exemple [Robot_Forex](http://ctdn.com/algos/cbots/show/225) de base écrit par [imWald](http://ctdn.com/users/profile/imWald) sur le dépôt de code source [CTDN](http://ctdn.com).
+Ce projet permet d'écrire un robot de trading basé sur un exemple [Robot_Forex](http://ctdn.com/algos/cbots/show/225) de base écrit par [imWald](http://ctdn.com/users/profile/imWald) sur le dépôt de code source [cTDN](http://ctdn.com).
 
 C'est suite à une demande d'un trader **Antoine C** qui souhaitait ajouter un stop-Loss à ce robot que j'ai commencé l'étude puis la modification de ce dernier. De fil en aiguille j'y ai ajouté d'autres caractéristiques et améliorations.
 
@@ -39,11 +39,11 @@ Starting capital	: 1000
 
 Commissions			: 30 pour EURUSD et 42 pour GBPUSD (pour d'autres instruments ce sera différent)
 
-1)Maximiser			: le Net Profit
+1)Minimiser			: le Drawdown en % (c'est le plus important pour construire un robot durable)
 
-2)Minimiser			: le Drawdown en %
+2)Maximiser			: le Net Profit
 
-3)Maximiser			: les trades gagnants.
+3)Maximiser			: les trades gagnants. (ce n'est pas essentiel, car on peux avoir moins de trades gagnants, tout en gagnant plus au final. Il suffit que la valeur moyenne des trades gagnants soit supérieure à celle des trades perdants)
 
 ## Copy Trader
 Vous pouvez copier la stratégie à partir du site 
