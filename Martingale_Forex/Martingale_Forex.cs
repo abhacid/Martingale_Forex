@@ -35,6 +35,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using cAlgo.API;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
@@ -70,7 +71,7 @@ namespace cAlgo.Robots
 
         private bool _isRobotStopped;
         private string _botName;
-        private string _botVersion = "1.3.4.1";
+		private string _botVersion = Assembly.GetExecutingAssembly().FullName.Split(',')[1].Replace("Version=", "").Trim();
 
         // le label permet de s'y retrouver parmis toutes les instances possibles.
         private string _instanceLabel;
@@ -86,17 +87,14 @@ namespace cAlgo.Robots
         private int _nPositions;
         #endregion
 
-
-
-
         protected override void OnStart()
         {
             base.OnStart();
 
             _debug = true;
-            _nPositions = 0;
             _botName = ToString();
             _instanceLabel = _botName + "-" + _botVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
+            _nPositions = GetPositions().Length;
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
@@ -108,23 +106,13 @@ namespace cAlgo.Robots
 
             switch (corner)
             {
-                case 1:
-                    _cornerPosition = StaticPosition.TopLeft;
-                    break;
-                case 2:
-                    _cornerPosition = StaticPosition.TopRight;
-                    break;
-                case 3:
-                    _cornerPosition = StaticPosition.BottomLeft;
-                    break;
-                case 4:
-                    _cornerPosition = StaticPosition.BottomRight;
-                    break;
+                case 1: _cornerPosition = StaticPosition.TopLeft; break;
+                case 2: _cornerPosition = StaticPosition.TopRight;break;
+                case 3: _cornerPosition = StaticPosition.BottomLeft;break;
+				case 4: _cornerPosition = StaticPosition.BottomRight;break;
             }
 
             ChartObjects.DrawText("BotVersion", _botName + " Version : " + _botVersion, _cornerPosition);
-
-
 
             if (_debug)
             {
@@ -140,18 +128,17 @@ namespace cAlgo.Robots
             if (Trade.IsExecuting)
                 return;
 
-            Position[] positions = GetPositions();
-
-            if (positions.Length > 0 && _isRobotStopped)
+            if (_nPositions > 0 && _isRobotStopped)
                 return;
             else
                 _isRobotStopped = false;
 
-            if (positions.Length == 0)
+            if (_nPositions == 0)
             {
                 // Calcule le volume en fonction du money management pour un risque maximum et un stop loss donné.
                 // Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
                 double maxVolume = this.moneyManagement(MoneyManagement, StopLoss);
+
                 if (MartingaleBuy)
                     _firstVolume = maxVolume;
                 else
@@ -165,6 +152,7 @@ namespace cAlgo.Robots
             else
                 ControlSeries();
 
+            Debug.Assert(_nPositions > 0);
 
             int pipstep = (int)(MarketSeries.volatility(14) / MaxOrders);
             if (MartingaleBuy)
@@ -197,7 +185,6 @@ namespace cAlgo.Robots
                         break;
                 }
             }
-
         }
 
         protected override void OnError(Error CodeOfError)

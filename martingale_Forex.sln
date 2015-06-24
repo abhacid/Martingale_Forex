@@ -7,13 +7,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Martingale_Forex", "Marting
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C48D7DC6-1536-4591-A2AF-D730653D8860}"
 	ProjectSection(SolutionItems) = preProject
-		Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG = Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations", "Backtests and optimisations", "{C6CC3FA2-017D-4C95-A65E-4702BC76CDC3}"
 	ProjectSection(SolutionItems) = preProject
 		Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG = Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG
+		Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG = Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG
 		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset
