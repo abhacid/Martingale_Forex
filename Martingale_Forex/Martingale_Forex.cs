@@ -131,6 +131,7 @@ namespace cAlgo.Robots
             }
         }
 
+        // Méthode de callback sur chaque tick
         protected override void OnTick()
         {
             if (Trade.IsExecuting)
