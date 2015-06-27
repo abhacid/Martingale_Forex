@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations
 		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset
 		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG
 		Backtests and optimisations\Martingale_Forex_1440, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1440, EURUSD m3.cbotset
+		Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.cbotset
+		Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.JPG
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"

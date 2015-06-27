@@ -28,7 +28,7 @@
 // Ce projet permet d'écrire un robot de trading basé sur un exemple Robot_Forex initial écrit par 
 // imWald sur le dépôt de code source CTDN.
 //
-// Pour résumer c'est une martingale avec stop loss et money management.
+// Pour résumer c'est une martingale avec stop loss, money management et stop suiveur.
 
 #endregion
 
