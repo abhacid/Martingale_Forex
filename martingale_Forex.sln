@@ -35,6 +35,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations
 		Backtests and optimisations\Martingale_Forex_1452, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1452, EURUSD m4.JPG
 		Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.cbotset
 		Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.JPG
+		Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.cbotset
+		Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.JPG
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArgunesStrategy", "..\..\Strategies\ArgunesStrategy\ArgunesStrategy.csproj", "{1C394650-DA14-4A31-9721-13F225797377}"
