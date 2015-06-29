@@ -1,0 +1,12 @@
+﻿[ChartParameters]
+Symbol = EURUSD
+Timeframe = m4
+
+[cBotParameters]
+MartingaleBuy = False
+MartingaleCoeff = 0.65
+BollingerDivision = 2
+MoneyManagement = 2.1
+TakeProfit = 7.9
+StopLoss = 28
+MaxOrders = 5
