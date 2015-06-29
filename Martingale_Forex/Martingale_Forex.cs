@@ -50,6 +50,12 @@ namespace cAlgo.Robots
         [Parameter("Martingale Buy", DefaultValue = true)]
         public bool MartingaleBuy { get; set; }
 
+        [Parameter("Martingale", DefaultValue = 0.5, MinValue = 0)]
+        public double MartingaleCoeff { get; set; }
+
+        [Parameter("Bollinger Division", DefaultValue = 8, MinValue = 2)]
+        public int BollingerDivision { get; set; }
+
         [Parameter("Money Management (%)", DefaultValue = 1.6, MinValue = 0)]
         public double MoneyManagement { get; set; }
 
@@ -58,9 +64,6 @@ namespace cAlgo.Robots
 
         [Parameter("Stop Loss", DefaultValue = 27.5, MinValue = 0.5)]
         public double StopLoss { get; set; }
-
-        [Parameter("Martingale", DefaultValue = 0.5, MinValue = 0)]
-        public double MartingaleCoeff { get; set; }
 
         [Parameter("Max Orders", DefaultValue = 2, MinValue = 2)]
         public int MaxOrders { get; set; }
@@ -100,7 +103,7 @@ namespace cAlgo.Robots
             Positions.Closed += OnPositionClosed;
 
             _strategies = new List<Strategy>();
-            _strategies.Add(new DoubleCandleStrategy(this, 14, 0));
+            _strategies.Add(new DoubleCandleStrategy(this, 14, 0,BollingerDivision));
 
             int corner = 1;
 
@@ -200,7 +203,7 @@ namespace cAlgo.Robots
 
             if (_nPositions < MaxOrders)
             {
-                long volume = Symbol.NormalizeVolume(_firstVolume * (1 + MartingaleCoeff * _nPositions), RoundingMode.ToNearest);
+                double volume = _firstVolume * (1 + MartingaleCoeff * _nPositions);
 
                 double priceStep = MarketSeries.volatility(14) / MaxOrders;
 
@@ -342,7 +345,6 @@ namespace cAlgo.Robots
             else
                 return null;
         }
-
 
         private double GetAveragePrice()
         {
