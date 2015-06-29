@@ -109,18 +109,10 @@ namespace cAlgo.Robots
 
             switch (corner)
             {
-                case 1:
-                    _cornerPosition = StaticPosition.TopLeft;
-                    break;
-                case 2:
-                    _cornerPosition = StaticPosition.TopRight;
-                    break;
-                case 3:
-                    _cornerPosition = StaticPosition.BottomLeft;
-                    break;
-                case 4:
-                    _cornerPosition = StaticPosition.BottomRight;
-                    break;
+				case 1:_cornerPosition = StaticPosition.TopLeft; break;
+                case 2:_cornerPosition = StaticPosition.TopRight; break;
+                case 3:_cornerPosition = StaticPosition.BottomLeft; break;
+                case 4:_cornerPosition = StaticPosition.BottomRight; break;
             }
 
             ChartObjects.DrawText("BotVersion", _botName + " Version : " + _botVersion, _cornerPosition);
@@ -132,8 +124,6 @@ namespace cAlgo.Robots
                 Print("The current symbol has TickSize: {0}", Symbol.TickSize);
                 Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
             }
-
-
         }
 
         // Méthode de callback sur chaque tick
