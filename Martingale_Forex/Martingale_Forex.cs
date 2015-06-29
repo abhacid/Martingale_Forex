@@ -129,6 +129,8 @@ namespace cAlgo.Robots
                 Print("The current symbol has TickSize: {0}", Symbol.TickSize);
                 Print("The current symbol has TickSValue: {0}", Symbol.TickValue);
             }
+
+
         }
 
         // Méthode de callback sur chaque tick
@@ -250,7 +252,8 @@ namespace cAlgo.Robots
         {
             if (tradeType.HasValue)
             {
-                TradeResult tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel, StopLoss, TakeProfit, 10, _botName + " v" + _botVersion);
+				long normalizedVolume =Symbol.NormalizeVolume(volume, RoundingMode.ToNearest);
+                TradeResult tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol,normalizedVolume , _instanceLabel, StopLoss, TakeProfit, 10, _botName + " v" + _botVersion);
 
                 if (tradeResult.IsSuccessful)
                 {
