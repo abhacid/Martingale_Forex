@@ -47,15 +47,15 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Library\cAlgoLib\cAlgo.Lib.csproj">
+    <ProjectReference Include="..\..\..\Library\cAlgoLib\cAlgo.Lib.csproj">
       <Project>{d3e50b06-5578-42a2-addd-42f25d5a1f4c}</Project>
       <Name>cAlgo.Lib</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Strategies\ArgunesStrategy\ArgunesStrategy.csproj">
+    <ProjectReference Include="..\..\..\Strategies\ArgunesStrategy\ArgunesStrategy.csproj">
       <Project>{1c394650-da14-4a31-9721-13f225797377}</Project>
       <Name>ArgunesStrategy</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\Source\Repos\cAlgoBot\Sources\Strategies\DoubleCandleStrategy\DoubleCandleStrategy.csproj">
+    <ProjectReference Include="..\..\..\Strategies\DoubleCandleStrategy\DoubleCandleStrategy.csproj">
       <Project>{3a72e9d5-59d4-453f-9deb-416357bca25f}</Project>
       <Name>DoubleCandleStrategy</Name>
     </ProjectReference>
