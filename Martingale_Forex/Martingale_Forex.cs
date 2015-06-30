@@ -46,7 +46,7 @@ namespace cAlgo.Robots
     [Robot("Martingale Forex", AccessRights = AccessRights.None)]
     public class Martingale_Forex : Robot
     {
-        #region Parameters
+        #region cBot Parameters
         [Parameter("Martingale Buy", DefaultValue = true)]
         public bool MartingaleBuy { get; set; }
 
@@ -96,8 +96,8 @@ namespace cAlgo.Robots
 
             _debug = true;
             _botName = ToString();
-            _instanceLabel = _botName + "-" + _botVersion + "-" + Symbol.Code + "-" + TimeFrame.ToString();
-            _nPositions = Positions.FindAll(_instanceLabel).Length;
+			_instanceLabel = string.Format("{0}-{1}-{2}-{3}", _botName, _botVersion, Symbol.Code, TimeFrame.ToString());
+			_nPositions = Positions.FindAll(_instanceLabel).Length;
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
@@ -190,9 +190,8 @@ namespace cAlgo.Robots
         {
             _tradesType = this.signal(_strategies);
 
-            if (_tradesType.HasValue)
-                executeOrder(_tradesType, volume);
-
+			if(_tradesType.HasValue && (Positions.Find(_instanceLabel,Symbol,_tradesType.Value) == null))
+				executeOrder(_tradesType, volume);
         }
 
         private void ControlSeries()
@@ -239,15 +238,11 @@ namespace cAlgo.Robots
                             break;
                     }
                 }
-
-
-
             }
 
             //if (!DEBUG)
             //	ChartObjects.DrawText("MaxDrawdown", "MaxDrawdown: " + Math.Round(GetMaxDrawdown(), 2) + " Percent", corner_position);
         }
-
 
         private TradeResult executeOrder(TradeType? tradeType, double volume)
         {
