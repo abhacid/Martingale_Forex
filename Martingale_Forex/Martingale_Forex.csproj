@@ -60,6 +60,13 @@
       <Name>WPRSStrategy</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Martingale_Forex.url" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Martingale_Forex-backtests.jpg" />
+    <Content Include="Martingale_Forex-Live.jpg" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
