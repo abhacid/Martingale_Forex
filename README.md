@@ -47,7 +47,10 @@ Commissions			: 30 pour EURUSD et 42 pour GBPUSD (pour d'autres instruments ce s
 
 ## Copy Trader
 Vous pouvez copier la stratégie à partir du site 
-https://cm.spotware.com/account/196164
+
+cMirror : https://cm.spotware.com/account/196164
+
+ou myfxbook : https://www.myfxbook.com/portfolio/mforex/1292743
 
 
 
