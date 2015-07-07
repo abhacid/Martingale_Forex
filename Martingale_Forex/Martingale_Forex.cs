@@ -35,6 +35,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
+using System.Threading;
 using cAlgo.API;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
@@ -46,80 +48,43 @@ namespace cAlgo.Robots
     public class Martingale_Forex : Robot
     {
         #region cBot Parameters
-        [Parameter("Martingale On Gain", DefaultValue = true)]
-        public bool MartingaleGain { get; set; }
 
         [Parameter("Martingale", DefaultValue = 0.5, MinValue = 0)]
         public double MartingaleCoeff { get; set; }
 
-        [Parameter("Martingale Base Grid Step", DefaultValue = 7.5, MinValue = 3)]
+        [Parameter("Martingale Base Grid Step", DefaultValue = 11, MinValue = 3)]
         public double MartingaleBaseGridStep { get; set; }
 
-        [Parameter("Money Management (%)", DefaultValue = 1.6, MinValue = 0)]
+        [Parameter("Money Management (%)", DefaultValue = 2, MinValue = 0)]
         public double MoneyManagement { get; set; }
 
-        [Parameter("Stop Loss", DefaultValue = 27.5, MinValue = 0.5)]
+        [Parameter("Stop Loss", DefaultValue = 30, MinValue = 0.5)]
         public double StopLoss { get; set; }
 
-        [Parameter("Max Orders", DefaultValue = 2, MinValue = 2)]
-        public int MaxOrders { get; set; }
+        [Parameter("Max Orders On Gain", DefaultValue = 100, MinValue = 1)]
+        public int MaxOrdersOnGain { get; set; }
 
-        [Parameter("WPR Signal", DefaultValue=false)]
-        public bool WprSignal { get; set; }
+        [Parameter("Max Orders On Lost", DefaultValue = 5, MinValue = 1)]
+        public int MaxOrdersOnLost { get; set; }
 
-        [Parameter("WPR Source")]
-        public DataSeries WprSource { get; set; }
-
-        [Parameter("WPR Period", DefaultValue = 17, MinValue = 1)]
-        public int WprPeriod { get; set; }
-
-        [Parameter("WPR Overbuy Ceil", DefaultValue = -20, MinValue = -100, MaxValue = 0)]
-        public int WprOverbuyCeil { get; set; }
-
-        [Parameter("WPR Oversell Ceil", DefaultValue = -80, MinValue = -100, MaxValue = 0)]
-        public int WprOversellCeil { get; set; }
-
-        [Parameter("WPR Crossed Period", DefaultValue = 2, MinValue = 0)]
-        public int WprCrossedPeriod { get; set; }
-
-        [Parameter("WPR Min/Max Period", DefaultValue = 114)]
-        public int WprMinMaxPeriod { get; set; }
-
-        [Parameter("WPR Exceed MinMax", DefaultValue = 2)]
-        public int WprExceedMinMax { get; set; }
-
-        [Parameter("Double Candle Signal", DefaultValue=true)]
-        public bool DoubleCandleSignal { get; set; }
-
-        [Parameter("Bollinger Divisions", DefaultValue=8)]
-		public int BollingerDivisions { get; set; }
-		
-
-
+        [Parameter("Signal Fineness", DefaultValue = 1, MinValue = 0.0001)]
+        public double SignalFineness { get; set; }
         #endregion
 
         #region cBot variables
 
         private string _botName;
         private string _botVersion = Assembly.GetExecutingAssembly().FullName.Split(',')[1].Replace("Version=", "").Trim();
-
-        // le label permet de s'y retrouver parmis toutes les positions.
         private string _instanceLabel;
 
-        // Est une suite d'achat (Buy) ou une suite de vente (Sell).
-        private TradeType? _tradesType = null;
-
-        // premier nextVolume utilisé.
-        private double _firstVolume;
-        List<Strategy> _strategies;
-        private StaticPosition _cornerPosition;
+        DoubleCandleIndicator _doubleCandleIndicator;
         private bool _debug;
-        private int _nPositions;
-		bool isControlSeries;
+        bool _isControlSeries;
 
-        private double _firstEntryPrice;
-        private double _lastEntryPrice;
-        private double _previewEntryPrice;
+		bool _isBuy;
+		int _factor;
+		double _gridStep;
+		double _actualGainOrLoss=0;
 
         #endregion
 
@@ -133,38 +98,17 @@ namespace cAlgo.Robots
 
             _botName = ToString();
             _instanceLabel = string.Format("{0}-{1}-{2}-{3}", _botName, _botVersion, Symbol.Code, TimeFrame.ToString());
-            _nPositions = Positions.FindAll(_instanceLabel).Length;
+			
+			_gridStep = MartingaleBaseGridStep * Symbol.PipSize;
 
-            Positions.Opened += OnPositionOpened;
-            Positions.Closed += OnPositionClosed;
+			if (isExistPositions())
+			{
+				Position anyPosition = firstPosition();
+				_isBuy = anyPosition.isBuy();
+				_factor = anyPosition.factor();
+			}
 
-            _strategies = new List<Strategy>();
-			if (DoubleCandleSignal)
-				_strategies.Add(new DoubleCandleStrategy(this, 14, 0, BollingerDivisions));
-            
-			if(WprSignal)
-				_strategies.Add(new WPRSStrategy(this, WprSource, WprPeriod, WprOverbuyCeil, WprOversellCeil, WprCrossedPeriod, WprMinMaxPeriod, WprExceedMinMax));
-
-            int corner = 1;
-
-            switch (corner)
-            {
-                case 1:
-                    _cornerPosition = StaticPosition.TopLeft;
-                    break;
-                case 2:
-                    _cornerPosition = StaticPosition.TopRight;
-                    break;
-                case 3:
-                    _cornerPosition = StaticPosition.BottomLeft;
-                    break;
-                case 4:
-                    _cornerPosition = StaticPosition.BottomRight;
-                    break;
-            }
-
-            ChartObjects.DrawText("BotVersion", _botName + " Version : " + _botVersion, _cornerPosition);
-
+            ChartObjects.DrawText("BotVersion", _botName + " " + _botVersion, StaticPosition.TopCenter);
             if (_debug)
             {
                 Print("The current symbol is {0}", Symbol.Code);
@@ -173,11 +117,16 @@ namespace cAlgo.Robots
                 Print("The current symbol has TickSize (deposit currency): {0}", Symbol.TickSize);
                 Print("The current symbol has TickSValue (quote currency): {0}", Symbol.TickValue);
                 Print("The current symbol has {0} Digits", Symbol.Digits);
-                Print("The current symbol minimum nextVolume is {0}", Symbol.VolumeMin);
-                Print("The current symbol maximum nextVolume is {0}", Symbol.VolumeMax);
-                Print("The current symbol step nextVolume is {0}", Symbol.VolumeStep);
+                Print("The current symbol minimum baseVolume is {0}", Symbol.VolumeMin);
+                Print("The current symbol maximum baseVolume is {0}", Symbol.VolumeMax);
+                Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
 
             }
+
+            _doubleCandleIndicator = Indicators.GetIndicator<DoubleCandleIndicator>(SignalFineness);
+
+            Positions.Opened += OnPositionOpened;
+            Positions.Closed += OnPositionClosed;
         }
 
         /// <summary>
@@ -185,16 +134,17 @@ namespace cAlgo.Robots
         /// </summary>
         protected override void OnTick()
         {
-            if (isControlSeries)
+            base.OnTick();
+
+            if (_isControlSeries)
                 return;
-			
-			isControlSeries = true;
+
+            _isControlSeries = true;
 
             ControlSeries();
 
-			isControlSeries = false;
+            _isControlSeries = false;
         }
-
 
         protected override void OnError(Error error)
         {
@@ -206,136 +156,291 @@ namespace cAlgo.Robots
 
         private void OnPositionOpened(PositionOpenedEventArgs args)
         {
-            _nPositions++;
         }
 
         private void OnPositionClosed(PositionClosedEventArgs args)
         {
-            _nPositions--;
+			_actualGainOrLoss += args.Position.NetProfit;
         }
         #endregion
 
-
         /// <summary>
-        /// Gère le control des différentes prises de positions. un seul type de position est pris, le nextVolume des 
+        /// Gère le control des différentes prises de positions. un seul type de position est pris, le baseVolume des 
         /// positions successives augmentent selon le coefficient de martingale de manière linéaire en cas de pertes 
-		/// (MartingaleGain=false). Les nouvelles positions sont prises selon la grille _gridStep dont la 
-		/// valeur dépends de la volatilité. Lors d'une nouvelle position dans le cas d'une martingale sur les gains, 
-		/// les stops loss des positions précédentes sont ramenées au prix d'achat ou de vente afin d'assurer des stops 
-		/// zéro, puis déplacés au prochain prix d'achat ou de vente suivant si la position continue d'être gagnante.
+        /// (MartingaleGain=false). Les nouvelles positions sont prises selon la grille _gridStep dont la 
+        /// valeur dépends de la volatilité. Lors d'une nouvelle position dans le cas d'une martingale sur les gains, 
+        /// les stops loss des positions précédentes sont ramenées au prix d'achat ou de vente afin d'assurer des stops 
+        /// zéro, puis déplacés au prochain prix d'achat ou de vente suivant si la position continue d'être gagnante.
+		/// 
+		/// Calcule le baseVolume d'achat ou de vente en fonction du money management pour un risque maximum et un stop loss donné.
+		///	Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
         /// </summary>
         private void ControlSeries()
-        {	
-			if(_nPositions >= MaxOrders)
-				return;
+        {
+			TradeResult tradeResult;
 
-			double gridStep = MartingaleBaseGridStep * Symbol.PipSize * (MarketSeries.volatility(11)/MarketSeries.volatility(33));
-
-			// Calcule le volume en fonction du money management pour un risque maximum et un stop loss donné.
-			// Ne tient pas compte des risques sur d'autres positions ouvertes du compte de trading utilisé
-			double maxVolume = this.moneyManagement(MoneyManagement, StopLoss);
-
-			if(MartingaleGain)
-				_firstVolume = maxVolume;
-			else
-				_firstVolume = maxVolume / (MaxOrders + (MartingaleCoeff * MaxOrders * (MaxOrders - 1)) / 2.0);
-
-			if (_nPositions==0)
+			if(isNotExistPositions())
 			{
-				_tradesType = this.signal(_strategies);
+				tradeResult = manageFirstOrder();
 
-				if(_tradesType.HasValue)
+				if(tradeResult != null && tradeResult.IsSuccessful)
 				{
-					TradeResult tradeResult = executeOrder(_firstVolume, gridStep);
-					_firstEntryPrice = tradeResult.Position.EntryPrice.round(this);
+					_isBuy = tradeResult.Position.isBuy();
+					_factor = tradeResult.Position.factor();
 				}
 			}
 			else
 			{
-				double nextVolume = _firstVolume * (1 + MartingaleCoeff * _nPositions * (MartingaleGain ? 0:1));
+				drawSystemInfos();
+				drawPositionsInfos();
 
-				if (MartingaleGain)
-				{
-					double diffBetweenPriceAndLastEntryPrice = ((_tradesType.isBuy() ? Symbol.Ask : Symbol.Bid) - _lastEntryPrice) * _tradesType.factor();
+				tradeResult = manageNextOrder();
+			
+				if (tradeResult !=null && tradeResult.IsSuccessful)
+					manageStopLossOnLoss();	
+			}
 				
-					if ( diffBetweenPriceAndLastEntryPrice >= gridStep)
-						executeOrder(nextVolume,gridStep);
-				}
-				else
-					if (((_tradesType.isBuy() ? Symbol.Ask : Symbol.Bid) - _firstEntryPrice) * _tradesType.factor() + gridStep <= 0)
-						executeOrder(nextVolume,gridStep);
-
-				if (MartingaleGain)
-					foreach (Position position in Positions.FindAll(_instanceLabel, Symbol))
-					{
-						int factor = position.factor();
-
-						bool isPriceOverPositionPrice = ((position.isBuy() ? Symbol.Bid : Symbol.Ask) - position.EntryPrice) * factor  >= 0;
-						bool islastEntryPriceOverPositionPrice = (_lastEntryPrice - position.EntryPrice) * factor > 0;
-
-						if (isPriceOverPositionPrice  && islastEntryPriceOverPositionPrice)
-						{
-							double newStopLoss = ((position.isBuy() ? Symbol.Bid : Symbol.Ask)).round(this);
-
-							if ((newStopLoss - position.StopLoss)*factor > 0)
-								modifyOrder(position, newStopLoss, position.TakeProfit);						}
-					}
-			}
+			manageStopLossOnGain();
         }
 
-        /// <summary>
-        /// Execute un ordre de type _tradeType. Affiche le prochain niveau de martingale.
-        /// </summary>
-        /// <param name="nextVolume"></param>
-        /// <returns></returns>
-        private TradeResult executeOrder(double volume, double gridStep)
+        private TradeType? signal()
         {
-            if (!(_tradesType.HasValue) || volume <= 0)
+            if (_doubleCandleIndicator.Signal.LastValue > 0)
+                return TradeType.Buy;
+
+            if (_doubleCandleIndicator.Signal.LastValue < 0)
+                return TradeType.Sell;
+
+            return null;
+
+        }
+
+		private TradeResult manageFirstOrder()
+		{
+			TradeResult tradeResult = null;
+			TradeType? tradeTypeSignal = signal();
+
+			if(tradeTypeSignal.HasValue)
+				tradeResult = executeOrder(tradeTypeSignal);
+
+			return tradeResult;
+		}
+
+		private TradeResult manageNextOrder()
+		{
+			TradeResult tradeResult=null;
+			int numberOfPositions= nPositions();
+
+			double unrealizedGrossProfit = Account.UnrealizedGrossProfit;
+
+			if((numberOfPositions >= MaxOrdersOnGain && unrealizedGrossProfit > 0) || (numberOfPositions >= MaxOrdersOnLost && unrealizedGrossProfit < 0))
+				return null;
+
+			double upPrice = upEntryPrice();
+			double dnPrice = dnEntryPrice();
+			double actualPrice = _isBuy ? Symbol.Ask : Symbol.Bid;
+
+			if((actualPrice >= upPrice + _gridStep) || (actualPrice <= dnPrice - _gridStep))
+				tradeResult = executeOrder(tradeType());
+
+			return tradeResult;
+		}
+
+        private TradeResult executeOrder(TradeType? tradeType)
+        {
+            if (!(tradeType.HasValue))
                 return null;
 
-            Position pos = Positions.Find(_instanceLabel);
-            string comment = string.Format("{0} v{1}", _botName, _botVersion);
-            if (pos != null)
-                comment = string.Format("{0}-{1}-{2}", comment, pos.Id.ToString(), _nPositions+1);
+            long normalizedVolume = Symbol.NormalizeVolume(computeVolume(), RoundingMode.ToNearest);
 
-            long normalizedVolume = Symbol.NormalizeVolume(volume, RoundingMode.ToNearest);
-
-            TradeResult tradeResult = ExecuteMarketOrder(_tradesType.Value, Symbol, normalizedVolume, _instanceLabel, StopLoss, null, 10, comment);
-
-            if (!(tradeResult.IsSuccessful))
-                return null;
-
-            _previewEntryPrice = _lastEntryPrice;
-			_lastEntryPrice = tradeResult.Position.EntryPrice;
-			
-            if (MartingaleGain)
-                ChartObjects.DrawHorizontalLine("gridLine", _lastEntryPrice + _tradesType.factor() * gridStep, Colors.Navy, 2);
-            else // Martingale sur les pertes
-            {
-				double newStopLoss = (averagePrice() - _tradesType.factor() * StopLoss * Symbol.PipSize).round(this);
-
-				foreach(Position position in Positions.FindAll(_instanceLabel, Symbol))
-					if((newStopLoss - position.StopLoss) * position.factor() > 0)
-						modifyOrder(position, newStopLoss, null);
-
-                ChartObjects.DrawHorizontalLine("gridLine", _firstEntryPrice - _tradesType.factor() * gridStep, Colors.Navy, 2);
-            }
+            TradeResult tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, normalizedVolume, _instanceLabel, StopLoss, null, 10, comment());
 
             return tradeResult;
         }
 
-		/// <summary>
-		/// Modifie la position si aucune opération est en cours
-		/// </summary>
-		/// <param name="position"></param>
-		/// <param name="stopLoss"></param>
-		/// <param name="takeProfit"></param>
-		/// <returns></returns>
-		private TradeResult modifyOrder(Position position, double? stopLoss, double? takeProfit)
+        /// <summary>
+        /// Execute un ordre de type _tradeType
+        /// </summary>
+        /// <param name="baseVolume"></param>
+        /// <returns></returns>
+		private void manageStopLossOnGain()
 		{
-			TradeResult tradeResult = ModifyPosition(position, stopLoss, takeProfit);
+			foreach(Position position in Positions.FindAll(_instanceLabel, Symbol))
+			{
+				double price = (_isBuy ? Symbol.Bid : Symbol.Ask);
+				double ceilCoeff = 2 / 3;
+				bool isPriceOverPositionPrice = (price - position.EntryPrice) * _factor > _gridStep;
 
-			return tradeResult;
+				if(isPriceOverPositionPrice)
+				{
+					double newStopLoss = (price - _factor * ceilCoeff *_gridStep).round(this);
+
+					if((newStopLoss - position.StopLoss) * _factor > 0)
+						modifyOrder(position, newStopLoss, position.TakeProfit);
+				}
+			}
+		}
+
+		private void manageStopLossOnLoss()
+		{
+			ChartObjects.RemoveObject("gridLine");
+
+			if(Account.UnrealizedGrossProfit <= 0)
+			{
+				double newStopLoss = (averagePrice() - _factor * StopLoss * Symbol.PipSize).round(this);
+
+				foreach(Position position in Positions.FindAll(_instanceLabel, Symbol))
+					if((newStopLoss - position.StopLoss) * _factor > 0)
+						modifyOrder(position, newStopLoss, null);
+
+				ChartObjects.DrawHorizontalLine("gridLine", (_isBuy ? dnEntryPrice() : upEntryPrice()) - _factor * _gridStep, Colors.Navy, 2);
+			}
+			else
+				ChartObjects.DrawHorizontalLine("gridLine", (_isBuy ? upEntryPrice() : dnEntryPrice()) + _factor * _gridStep, Colors.Navy, 2);
+		}
+        /// <summary>
+        /// Modifie la position
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="stopLoss"></param>
+        /// <param name="takeProfit"></param>
+        /// <returns></returns>
+        private TradeResult modifyOrder(Position position, double? stopLoss, double? takeProfit)
+        {
+            if (position.StopLoss != stopLoss || position.TakeProfit != takeProfit)
+                return ModifyPosition(position, stopLoss, takeProfit);
+
+            return null;
+        }
+
+		private string comment()
+		{
+			StringBuilder comment = new StringBuilder();
+
+			if(isExistPositions())
+			{
+				Position firstPosition = Positions.Find(_instanceLabel);
+				int indexPositions = Positions.FindAll(_instanceLabel).Length + 1;
+				comment.AppendFormat("{0}-{1}", firstPosition.Id.ToString(), indexPositions.ToString());
+			}
+
+			return comment.ToString();
+		}
+
+		private TradeType? tradeType()
+		{
+			TradeType? tradeType = null;
+
+			if (isExistPositions())
+			{
+				Position anyPosition = Positions.Find(_instanceLabel);
+				tradeType = anyPosition.TradeType;			
+			}
+
+			return tradeType;
+
+		}
+
+		private Position firstPosition()
+		{
+			return Positions.Find(_instanceLabel);
+		}
+
+		private bool isNotExistPositions()
+		{
+			return !isExistPositions();
+		}
+
+		private bool isExistPositions()
+		{
+			return nPositions() > 0;
+		}
+
+		private int nPositions()
+		{
+			return Positions.FindAll(_instanceLabel).Length;
+		}
+
+		private void drawSystemInfos()
+		{
+			if (!isExistPositions())
+				return;
+
+			double price = _isBuy ? Symbol.Ask : Symbol.Bid;
+			double upPrice = upEntryPrice();
+			double dnPrice = dnEntryPrice();
+			double pipsForNextOrder = 0;
+			double priceOfNextOrder = 0;
+			bool isPriceCloserUpPrice = Math.Abs((upPrice + _gridStep) - price) < Math.Abs(price - (dnPrice - _gridStep));
+
+			if((price >= upPrice + _gridStep) || isPriceCloserUpPrice)
+				priceOfNextOrder = upPrice + _gridStep;
+			else
+				if((price <= dnPrice - _gridStep) || !isPriceCloserUpPrice)
+					priceOfNextOrder = dnPrice - _gridStep;
+
+			pipsForNextOrder = priceOfNextOrder - price;
+
+			string textToPrint =
+				"\nSpread\t\t: " + Math.Round(Symbol.Spread * Math.Pow(10, Symbol.Digits), 2) + " ticks" +
+				"\nAsk\t\t: " + Math.Round(Symbol.Ask, Symbol.Digits) +
+				"\nMid\t\t: " + Math.Round((Symbol.Ask + Symbol.Bid) / 2, Symbol.Digits) +
+				"\nBid\t\t: " + Math.Round(Symbol.Bid, Symbol.Digits) +
+				"\n-----------------" +
+				"\nPotential Gain\t: indetermined" +
+				"\nPotential Loss\t: " + Math.Round(potentialLoss(), 2) +
+				"\nGain or Loss\t: " + Math.Round(_actualGainOrLoss, 2) + " Euros"+
+				"\n-----------------" +
+				"\nnext step in\t: " + Math.Round(pipsForNextOrder * Math.Pow(10, Symbol.Digits), 2) + " ticks" +
+				"\nUp Price\t\t: " + Math.Round(upPrice, Symbol.Digits) +
+				"\nDn Price\t\t: " + Math.Round(dnPrice, Symbol.Digits) +
+				"\nNext Order Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) +
+				"\nNext Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) +
+				"\nNext Volume\t: " + Math.Round(computeVolume() / Symbol.LotSize, 2) + " lots";
+
+
+
+
+			ChartObjects.DrawHorizontalLine("gridLine",priceOfNextOrder, Colors.Navy, 2);
+
+			ChartObjects.DrawText("systemInfos", textToPrint, StaticPosition.TopLeft);
+		}
+
+		private void drawPositionsInfos()
+		{
+			if (!isExistPositions())
+				return;
+
+			StringBuilder positionsInfos = new StringBuilder();
+			string format = "{0} \t| {1} \t| {2}\n";
+
+			positionsInfos.AppendFormat(format, "Id", "potential loss", "Pips");
+
+			foreach (Position position in Positions)
+			{
+				double potentialLoss = Math.Round((position.EntryPrice-position.StopLoss.Value)*position.Volume,2);
+				double pipsToStopLoss = Math.Round(position.stopLossToPips(Symbol).Value,2);
+
+				positionsInfos.AppendFormat(format, position.Id, potentialLoss, pipsToStopLoss);
+			}
+
+			ChartObjects.DrawText("positionsInfos", positionsInfos.ToString(), StaticPosition.TopRight);
+		}
+
+		private double computeVolume()
+		{
+			double maxVolume = this.moneyManagement(MoneyManagement, StopLoss);
+			bool isEnoughProfit = Account.UnrealizedNetProfit >= _gridStep * maxVolume;
+
+			int nPositions = Positions.FindAll(_instanceLabel).Length;
+
+			double maxVolumeOnGain = maxVolume;
+			double maxVolumeOnLost = maxVolume / (MaxOrdersOnLost + (MartingaleCoeff * MaxOrdersOnLost * (MaxOrdersOnLost - 1)) / 2.0);
+			double baseVolume = isEnoughProfit ? maxVolumeOnGain : maxVolumeOnLost;			
+
+			double volume = baseVolume * (1 + MartingaleCoeff * nPositions * (isEnoughProfit ? 0 : 1));
+
+			return volume;
 		}
 
         /// <summary>
@@ -356,8 +461,88 @@ namespace cAlgo.Robots
 
             if (sum > 0 && count > 0)
                 return sum / count;
-            else
-                throw new System.ArgumentException("averagePrice() : There is no open position");
+
+            return 0;
         }
-    }
+
+        private double potentialGain()
+        {
+            double potential = 0;
+
+            foreach (Position position in Positions.FindAll(_instanceLabel))
+            {
+                double? positionPotential = position.potentialProfit();
+                potential += positionPotential.HasValue ? positionPotential.Value : 0;
+            }
+
+            return potential;
+        }
+
+        private double potentialLoss()
+        {
+            double potential = 0;
+
+            foreach (Position position in Positions.FindAll(_instanceLabel))
+            {
+                double? positionPotential = position.potentialLoss();
+                potential += positionPotential.HasValue ? positionPotential.Value : 0;
+            }
+
+            return potential;
+        }
+
+		private Position upPosition()
+		{
+			Position upPosition=null;
+			double price = 0;
+
+			foreach(Position position in Positions.FindAll(_instanceLabel))
+			{
+				if(position.EntryPrice > price || price == 0)
+				{
+					price = position.EntryPrice;
+					upPosition = position;
+				}
+			}
+
+			return upPosition;
+		}
+
+		private Position dnPosition()
+		{
+			Position dnPosition=null;
+			double price = 0;
+
+			foreach(Position position in Positions.FindAll(_instanceLabel))
+			{
+				if(position.EntryPrice < price || price == 0)
+				{
+					price = position.EntryPrice;
+					dnPosition = position;
+				}
+			}
+
+			return dnPosition;
+		}
+
+        private double upEntryPrice()
+        {
+			Position position = upPosition();
+			
+			if (position != null)
+				return position.EntryPrice;
+
+			return 0;
+        }
+
+        private double dnEntryPrice()
+        {
+			Position position = dnPosition();
+			
+			if (position != null)
+				return position.EntryPrice;
+
+			return 0;            
+        }    
+	}
 }

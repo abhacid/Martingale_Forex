@@ -41,11 +41,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPRSStrategy", "..\..\Strategies\WPRStrategy\WPRSStrategy.csproj", "{E185CAD6-92BC-422F-AEA4-8E8CAA741043}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WPRSIndicator", "..\..\Indicators\WPRSIndicator\WPRSIndicator\WPRSIndicator.csproj", "{34C58EBA-1B9D-4154-A28B-710DAC339D8F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoubleCandleStrategy", "..\..\Strategies\DoubleCandleStrategy\DoubleCandleStrategy.csproj", "{3A72E9D5-59D4-453F-9DEB-416357BCA25F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoubleCandleIndicator", "..\..\Indicators\DoubleCandleIndicator\DoubleCandleIndicator\DoubleCandleIndicator.csproj", "{E66A822A-0F5C-428C-889B-BDA99773830F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,18 +57,10 @@ Global
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E185CAD6-92BC-422F-AEA4-8E8CAA741043}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E185CAD6-92BC-422F-AEA4-8E8CAA741043}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E185CAD6-92BC-422F-AEA4-8E8CAA741043}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E185CAD6-92BC-422F-AEA4-8E8CAA741043}.Release|Any CPU.Build.0 = Release|Any CPU
-		{34C58EBA-1B9D-4154-A28B-710DAC339D8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{34C58EBA-1B9D-4154-A28B-710DAC339D8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{34C58EBA-1B9D-4154-A28B-710DAC339D8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{34C58EBA-1B9D-4154-A28B-710DAC339D8F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3A72E9D5-59D4-453F-9DEB-416357BCA25F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E66A822A-0F5C-428C-889B-BDA99773830F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E66A822A-0F5C-428C-889B-BDA99773830F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E66A822A-0F5C-428C-889B-BDA99773830F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E66A822A-0F5C-428C-889B-BDA99773830F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
