@@ -53,7 +53,7 @@ cMirror : https://cm.spotware.com/account/196164
 ou myfxbook : https://www.myfxbook.com/portfolio/mforex/1292743
 
 ## Vidéos Youtube
-Différentes vidéos sur Youtube sont disponible et explique le fonctionnement de l'environnement de développement
+Différentes vidéos sur Youtube sont disponible et expliquent le fonctionnement de l'environnement de développement
 Visual Studio, Github et cAlgo ainsi que le fonctionnement de robots particuliers.
 
 [Robot Martingale_Forex (cTdn)](https://www.youtube.com/watch?v=P6jeiBXK1Rg)
