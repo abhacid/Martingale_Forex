@@ -52,20 +52,20 @@ namespace cAlgo.Robots
         [Parameter("Martingale Coefficient", DefaultValue = 0.5, MinValue = 0)]
         public double MartingaleCoeff { get; set; }
 
-        [Parameter("Grid Step", DefaultValue = 11, MinValue = 3)]
+        [Parameter("Grid Step", DefaultValue = 11, MinValue = 0.1)]
         public double GridStep { get; set; }
 
         [Parameter("Max Orders", DefaultValue = 20, MinValue = 1)]
         public int MaxOrders { get; set; }
 
-        [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0)]
+        [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0.01)]
         public double Risk { get; set; }
 
-        [Parameter("Stop Loss", DefaultValue = 30, MinValue = 0.5)]
+        [Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
         public double StopLoss { get; set; }
 
-		[Parameter("Number Of Candle", DefaultValue = 2, MinValue = 0)]
-		public int NumberOfCandle { get; set; }
+        [Parameter("Number Of Candle", DefaultValue = 2, MinValue = 1)]
+        public int NumberOfCandle { get; set; }
 
 
         [Parameter("Signal Fineness", DefaultValue = 0.01)]
@@ -86,7 +86,7 @@ namespace cAlgo.Robots
         int _factor;
         double _gridStep;
         double _actualGainOrLoss = 0;
-		int _nPosition;
+        int _nPosition;
         #endregion
 
         #region cBot Events
@@ -100,7 +100,7 @@ namespace cAlgo.Robots
             _botName = ToString();
             _instanceLabel = string.Format("{0}-{1}-{2}-{3}", _botName, _botVersion, Symbol.Code, TimeFrame.ToString());
             _gridStep = GridStep * Symbol.PipSize;
-			_nPosition = nPositions();
+            _nPosition = nPositions();
 
             if (isExistPositions())
             {
@@ -124,7 +124,7 @@ namespace cAlgo.Robots
 
             }
 
-            _MultiCandleIndicator = Indicators.GetIndicator<MultiCandleIndicator>(2,SignalFineness);
+            _MultiCandleIndicator = Indicators.GetIndicator<MultiCandleIndicator>(2, SignalFineness);
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
@@ -147,17 +147,9 @@ namespace cAlgo.Robots
             _isControlSeries = false;
         }
 
-        protected override void OnError(Error error)
-        {
-            string errorString = this.errorString(error);
-
-            if (errorString != "")
-                Print(errorString);
-        }
-
         private void OnPositionOpened(PositionOpenedEventArgs args)
         {
-			_nPosition++;
+            _nPosition++;
         }
 
         private void OnPositionClosed(PositionClosedEventArgs args)
@@ -165,10 +157,23 @@ namespace cAlgo.Robots
             if (args != null && args.Position != null)
                 _actualGainOrLoss += args.Position.NetProfit;
 
-			_nPosition--;
+            _nPosition--;
 
         }
-        #endregion
+		protected override double GetFitness(GetFitnessArgs args)
+		{
+			//maximize count of winning trades and minimize count of losing trades
+			return args.WinningTrades / args.LosingTrades;
+		}
+
+        protected override void OnError(Error error)
+        {
+            string errorString = this.errorString(error);
+
+            if (errorString != "")
+                Print(errorString);
+        }        
+		#endregion
 
         /// <summary>
         /// Gère le control des différentes prises de positions. un seul type de position est pris, le baseVolume des 
@@ -202,10 +207,10 @@ namespace cAlgo.Robots
 
                 tradeResult = manageNextOrder();
 
-				if(tradeResult != null && tradeResult.IsSuccessful)
-				{
-					
-				}
+                if (tradeResult != null && tradeResult.IsSuccessful)
+                {
+
+                }
 
                 //if (tradeResult !=null && tradeResult.IsSuccessful)
                 //	manageStopLossOnLoss();	
@@ -214,26 +219,28 @@ namespace cAlgo.Robots
             manageStopLoss();
         }
 
-		/// <summary>
-		/// return a buy or a sell signal, or null if there is no signal.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// return a buy or a sell signal, or null if there is no signal.
+        /// </summary>
+        /// <returns></returns>
         private TradeType? signal()
         {
-            if (_MultiCandleIndicator.Signal.LastValue > 0)
+			int index = MarketSeries.Close.Count - 1;
+			
+			if(_MultiCandleIndicator.Signal[index] > 0)
                 return TradeType.Buy;
 
-            if (_MultiCandleIndicator.Signal.LastValue < 0)
+			if(_MultiCandleIndicator.Signal[index] < 0)
                 return TradeType.Sell;
 
             return null;
 
         }
 
-		/// <summary>
-		/// Manage the first order.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Manage the first order.
+        /// </summary>
+        /// <returns></returns>
         private TradeResult manageFirstOrder()
         {
             TradeResult tradeResult = null;
@@ -245,10 +252,10 @@ namespace cAlgo.Robots
             return tradeResult;
         }
 
-		/// <summary>
-		/// Manage the others orders.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Manage the others orders.
+        /// </summary>
+        /// <returns></returns>
         private TradeResult manageNextOrder()
         {
             if (nPositions() >= MaxOrders)
@@ -266,11 +273,11 @@ namespace cAlgo.Robots
             return tradeResult;
         }
 
-		/// <summary>
-		/// Execute an order of type "tradeType"
-		/// </summary>
-		/// <param name="tradeType"></param>
-		/// <returns></returns>
+        /// <summary>
+        /// Execute an order of type "tradeType"
+        /// </summary>
+        /// <param name="tradeType"></param>
+        /// <returns></returns>
         private TradeResult executeOrder(TradeType? tradeType)
         {
             if (!(tradeType.HasValue))
@@ -295,18 +302,17 @@ namespace cAlgo.Robots
         {
             foreach (Position position in Positions.FindAll(_instanceLabel, Symbol))
             {
-				double newStopLoss;
+                double newStopLoss;
                 double price = (_isBuy ? Symbol.Bid : Symbol.Ask);
-                double ceilCoeffStepOne = 2.0/3;
-				double ceilCoeffStepTwo = 1.0/3;
+                double ceilCoeffStepOne = 2.0 / 3;
+                double ceilCoeffStepTwo = 1.0 / 3;
 
-				if((price - position.EntryPrice) * _factor >= 2 * _gridStep)
-					newStopLoss = price - _factor * ceilCoeffStepOne * _gridStep;
-				else
-					if((price - position.EntryPrice) * _factor >= _gridStep)
-						newStopLoss = price - _factor * ceilCoeffStepTwo * _gridStep;
-					else
-						newStopLoss = averagePrice() - (_factor  - (nPositions()-1) / MaxOrders)* Symbol.PipSize *StopLoss;
+                if ((price - position.EntryPrice) * _factor >= 2 * _gridStep)
+                    newStopLoss = price - _factor * ceilCoeffStepOne * _gridStep;
+                else if ((price - position.EntryPrice) * _factor >= _gridStep)
+                    newStopLoss = price - _factor * ceilCoeffStepTwo * _gridStep;
+                else
+                    newStopLoss = averagePrice() - (_factor * ( 1 - ((double)nPositions() / MaxOrders))) * Symbol.PipSize * StopLoss;
 
                 if ((newStopLoss.round(this) - position.StopLoss) * _factor > 0)
                     modifyOrder(position, newStopLoss, position.TakeProfit);
@@ -330,10 +336,10 @@ namespace cAlgo.Robots
             return null;
         }
 
-		/// <summary>
-		/// Add an index of the position in the comment position.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Add an index of the position in the comment position.
+        /// </summary>
+        /// <returns></returns>
         private string comment()
         {
             StringBuilder comment = new StringBuilder();
@@ -348,10 +354,10 @@ namespace cAlgo.Robots
             return comment.ToString();
         }
 
-		/// <summary>
-		/// Return the type Buy or Sell of the positions series.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return the type Buy or Sell of the positions series.
+        /// </summary>
+        /// <returns></returns>
         private TradeType? tradeType()
         {
             TradeType? tradeType = null;
@@ -366,45 +372,50 @@ namespace cAlgo.Robots
 
         }
 
-		/// <summary>
-		/// Return the first position of all taking positions.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return the first position of all taking positions.
+        /// </summary>
+        /// <returns></returns>
         private Position firstPosition()
         {
             return Positions.Find(_instanceLabel);
         }
 
-		/// <summary>
-		/// Return true if there is no position or false if there is position.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return true if there is no position or false if there is position.
+        /// </summary>
+        /// <returns></returns>
         private bool isNotExistPositions()
         {
             return !isExistPositions();
         }
 
-		/// <summary>
-		///  Return true if there is position or false if there is no position.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        ///  Return true if there is position or false if there is no position.
+        /// </summary>
+        /// <returns></returns>
         private bool isExistPositions()
         {
             return nPositions() > 0;
         }
 
-		/// <summary>
-		/// Return the numbers of positions.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return the numbers of positions.
+        /// </summary>
+        /// <returns></returns>
         private int nPositions()
         {
-            return Positions.FindAll(_instanceLabel).Length;
+			Position[] positions =  Positions.FindAll(_instanceLabel);
+
+			if(positions != null)
+				return positions.Length;
+			else
+				return 0;
         }
 
-		/// <summary>
-		/// Draw infos of the positions series and account.
-		/// </summary>
+        /// <summary>
+        /// Draw infos of the positions series and account.
+        /// </summary>
         private void drawSystemInfos()
         {
             if (!isExistPositions())
@@ -415,31 +426,37 @@ namespace cAlgo.Robots
             double dnPrice = dnEntryPrice();
             double pipsForNextOrder = 0;
             double priceOfNextOrder = 0;
-            //bool isPriceCloserUpPrice = Math.Abs((upPrice + _gridStep) - price) < Math.Abs(price - (dnPrice - _gridStep));
 
             if (_isBuy)
                 priceOfNextOrder = upPrice + _gridStep;
             else
                 priceOfNextOrder = dnPrice - _gridStep;
 
-            //if((price >= upPrice + _gridStep) || isPriceCloserUpPrice)
-            //	priceOfNextOrder = upPrice + _gridStep;
-            //else
-            //	if((price <= dnPrice - _gridStep) || !isPriceCloserUpPrice)
-            //		priceOfNextOrder = dnPrice - _gridStep;
-
             pipsForNextOrder = priceOfNextOrder - price;
 
-            string textToPrint = "\nSpread\t\t: " + Math.Round(Symbol.Spread * Math.Pow(10, Symbol.Digits), 2) + " ticks" + "\nAsk\t\t: " + Math.Round(Symbol.Ask, Symbol.Digits) + "\nMid\t\t: " + Math.Round((Symbol.Ask + Symbol.Bid) / 2, Symbol.Digits) + "\nBid\t\t: " + Math.Round(Symbol.Bid, Symbol.Digits) + "\n-----------------" + "\nPotential Gain\t: indetermined" + "\nPotential Loss\t: " + Math.Round(this.potentialLoss(_instanceLabel), 2) + "\nGain or Loss\t: " + Math.Round(_actualGainOrLoss, 2) + " Euros" + "\n-----------------" + "\nnext step in\t: " + Math.Round(pipsForNextOrder * Math.Pow(10, Symbol.Digits), 2) + " ticks" + "\nUp Price\t\t: " + Math.Round(upPrice, Symbol.Digits) + "\nDn Price\t\t: " + Math.Round(dnPrice, Symbol.Digits) + "\nNext Order Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + "\nNext Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + "\nNext Volume\t: " + Math.Round(computeVolume() / Symbol.LotSize, 2) + " lots";
+            string textToPrint = "\nSpread\t\t: " + Math.Round(Symbol.Spread * Math.Pow(10, Symbol.Digits), 2) + " ticks" + 
+				"\nAsk\t\t: " + Math.Round(Symbol.Ask, Symbol.Digits) + 
+				"\nMid\t\t: " + Math.Round((Symbol.Ask + Symbol.Bid) / 2, Symbol.Digits) + 
+				"\nBid\t\t: " + Math.Round(Symbol.Bid, Symbol.Digits) + 
+				"\n-----------------" + 
+				"\nPotential Gain\t: indetermined" + "\nPotential Loss\t: " + Math.Round(this.potentialLoss(_instanceLabel), 2) + 
+				"\nGain or Loss\t: " + Math.Round(_actualGainOrLoss, 2) + " Euros" + 
+				"\n-----------------" + 
+				"\nnext step in\t: " + Math.Round(pipsForNextOrder * Math.Pow(10, Symbol.Digits), 2) + " ticks" + 
+				"\nUp Price\t\t: " + Math.Round(upPrice, Symbol.Digits) + "\nDn Price\t\t: " + Math.Round(dnPrice, Symbol.Digits) + 
+				"\nNext Order Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + 
+				"\nNext Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + 
+				"\nNext Volume\t: " + Math.Round(computeVolume() / Symbol.LotSize, 2) + 
+				" lots";
 
             ChartObjects.DrawHorizontalLine("gridLine", priceOfNextOrder, Colors.Navy, 2);
 
             ChartObjects.DrawText("systemInfos", textToPrint, StaticPosition.TopLeft);
         }
 
-		/// <summary>
-		/// Draw infos about the positions.
-		/// </summary>
+        /// <summary>
+        /// Draw infos about the positions.
+        /// </summary>
         private void drawPositionsInfos()
         {
             if (!isExistPositions())
@@ -461,18 +478,21 @@ namespace cAlgo.Robots
             ChartObjects.DrawText("positionsInfos", positionsInfos.ToString(), StaticPosition.TopRight);
         }
 
-		/// <summary>
-		/// Calculate the volume of the position to take with money management considerations.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Calculate the volume of the position to take with money management considerations.
+        /// </summary>
+        /// <returns></returns>
         private double computeVolume()
         {
             double maxVolume = this.moneyManagement(Risk, StopLoss);
 
-			double nPosition = nPositions();
-			double nOrder = MaxOrders - nPosition;
+            double nPosition = nPositions();
+            double nRemainingOrders = MaxOrders - nPosition;
+			double alpha = nRemainingOrders/MaxOrders;
 
-			double baseVolume = maxVolume / (nOrder + (MartingaleCoeff * nOrder * (nOrder - 1) / 2.0));
+            double baseVolume = maxVolume / ((nRemainingOrders+1) + (MartingaleCoeff * (nRemainingOrders+1) * nRemainingOrders / 2.0));
+
+			baseVolume = (1-alpha) * maxVolume + alpha * baseVolume;
 
             double volume = baseVolume * (1 + MartingaleCoeff * nPosition);
 
@@ -501,10 +521,10 @@ namespace cAlgo.Robots
             return 0;
         }
 
-		/// <summary>
-		/// Return the position that have the high entry price.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return the position that have the high entry price.
+        /// </summary>
+        /// <returns></returns>
         private Position upPosition()
         {
             Position upPosition = null;
@@ -522,10 +542,10 @@ namespace cAlgo.Robots
             return upPosition;
         }
 
-		/// <summary>
-		/// Return the position that have the low entry price.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return the position that have the low entry price.
+        /// </summary>
+        /// <returns></returns>
         private Position dnPosition()
         {
             Position dnPosition = null;
@@ -543,10 +563,10 @@ namespace cAlgo.Robots
             return dnPosition;
         }
 
-		/// <summary>
-		/// Return the high entry price.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// Return the high entry price.
+        /// </summary>
+        /// <returns></returns>
         private double upEntryPrice()
         {
             Position position = upPosition();
@@ -557,10 +577,10 @@ namespace cAlgo.Robots
             return 0;
         }
 
-		/// <summary>
-		/// return the low entry price.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// return the low entry price.
+        /// </summary>
+        /// <returns></returns>
         private double dnEntryPrice()
         {
             Position position = dnPosition();
