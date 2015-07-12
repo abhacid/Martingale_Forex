@@ -66,11 +66,11 @@ Commissions			: 30 pour EURUSD et 42 pour GBPUSD (Pour Spotware, pour d'autres b
 Il suffit que la valeur moyenne des trades gagnants soit supérieure à celle des trades perdants)
 
 ## Copy Trader
-Vous pouvez copier la stratégie à partir du site 
+Vous pouvez copier la stratégie (v1.7.0.0 du robot) à partir des sites 
 
-cMirror : https://cm.spotware.com/account/197725 (v1.7.0.0 du robot)
+cMirror : https://cm.spotware.com/account/197725 
 
-ou myfxbook : https://www.myfxbook.com/portfolio/mforex/1292743
+ou myfxbook : https://www.myfxbook.com/portfolio/mforex-1700/1304163
 
 ## Vidéos Youtube
 Différentes vidéos sur Youtube sont disponible et expliquent le fonctionnement de l'environnement de développement
