@@ -68,7 +68,7 @@ Il suffit que la valeur moyenne des trades gagnants soit supérieure à celle de
 ## Copy Trader
 Vous pouvez copier la stratégie à partir du site 
 
-cMirror : https://cm.spotware.com/account/196164
+cMirror : https://cm.spotware.com/account/197725 (v1.7.0.0 du robot)
 
 ou myfxbook : https://www.myfxbook.com/portfolio/mforex/1292743
 
