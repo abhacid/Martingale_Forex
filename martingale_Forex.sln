@@ -10,38 +10,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backtests and optimisations", "Backtests and optimisations", "{C6CC3FA2-017D-4C95-A65E-4702BC76CDC3}"
-	ProjectSection(SolutionItems) = preProject
-		Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG = Backtests and optimisations\Gains et pertes entre le 22 et le 23 juin.JPG
-		Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG = Martingale_Forex-v1.3.1.2-EURUSD-5m-MM3-TP10-SL5-M0,3-MO6.JPG
-		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.cbotset
-		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 11 180 525-20150518-20150619.JPG
-		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.cbotset
-		Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1320, EURUSD m4-NetProfit 2 323 041 405-20150518-20150619.JPG
-		Backtests and optimisations\Martingale_Forex_1330, EURUSD m4-NetProfit  6 082 155 570-20150518-20150619 .JPG = Backtests and optimisations\Martingale_Forex_1330, EURUSD m4-NetProfit  6 082 155 570-20150518-20150619 .JPG
-		Backtests and optimisations\Martingale_Forex_1330, EURUSD m4-NetProfit 6 082 155 570-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1330, EURUSD m4-NetProfit 6 082 155 570-20150518-20150619.cbotset
-		Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 21 256-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 21 256-20150518-20150619.cbotset
-		Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 21 256-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 21 256-20150518-20150619.JPG
-		Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 312 550-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 312 550-20150518-20150619.cbotset
-		Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 312 550-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1330, GBPUSD m5-NetProfit 312 550-20150518-20150619.JPG
-		Backtests and optimisations\Martingale_Forex_1330, USDJPY m4-NetProfit 1 073 193 442-20150518-20150619.cbotset = Backtests and optimisations\Martingale_Forex_1330, USDJPY m4-NetProfit 1 073 193 442-20150518-20150619.cbotset
-		Backtests and optimisations\Martingale_Forex_1330, USDJPY m4-NetProfit 1 073 193 442-20150518-20150619.JPG = Backtests and optimisations\Martingale_Forex_1330, USDJPY m4-NetProfit 1 073 193 442-20150518-20150619.JPG
-		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.cbotset
-		Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG = Backtests and optimisations\Martingale_Forex_1331, EURUSD m3.JPG
-		Backtests and optimisations\Martingale_Forex_1440, EURUSD m3.cbotset = Backtests and optimisations\Martingale_Forex_1440, EURUSD m3.cbotset
-		Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.cbotset
-		Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1450, EURUSD m4.JPG
-		Backtests and optimisations\Martingale_Forex_1452, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1452, EURUSD m4.cbotset
-		Backtests and optimisations\Martingale_Forex_1452, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1452, EURUSD m4.JPG
-		Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.cbotset
-		Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1453, EURUSD m4.JPG
-		Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.cbotset = Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.cbotset
-		Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.JPG = Backtests and optimisations\Martingale_Forex_1453-2, EURUSD m4.JPG
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cAlgo.Lib", "..\..\Library\cAlgoLib\cAlgo.Lib.csproj", "{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Multi Candle", "..\..\Indicators\Multi Candle\Multi Candle\Multi Candle.csproj", "{77280A96-1D78-496A-A966-3C9893C6E4AC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Candlestick Tendency II", "..\..\Indicators\Candlestick Tendency II\Candlestick Tendency II\Candlestick Tendency II.csproj", "{BB22C237-B1B8-4E4C-907B-F1D84CBAA1BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,10 +28,10 @@ Global
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3E50B06-5578-42A2-ADDD-42F25D5A1F4C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{77280A96-1D78-496A-A966-3C9893C6E4AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{77280A96-1D78-496A-A966-3C9893C6E4AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{77280A96-1D78-496A-A966-3C9893C6E4AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{77280A96-1D78-496A-A966-3C9893C6E4AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB22C237-B1B8-4E4C-907B-F1D84CBAA1BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB22C237-B1B8-4E4C-907B-F1D84CBAA1BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB22C237-B1B8-4E4C-907B-F1D84CBAA1BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB22C237-B1B8-4E4C-907B-F1D84CBAA1BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

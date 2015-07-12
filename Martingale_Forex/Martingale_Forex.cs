@@ -44,7 +44,7 @@ using cAlgo.Strategies;
 
 namespace cAlgo.Robots
 {
-    [Robot("Martingale Forex", AccessRights = AccessRights.None)]
+    [Robot("Martingale Forex", AccessRights = AccessRights.None, TimeZone=TimeZones.UTC)]
     public class Martingale_Forex : Robot
     {
         #region cBot Parameters
@@ -64,12 +64,24 @@ namespace cAlgo.Robots
         [Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
         public double StopLoss { get; set; }
 
-        [Parameter("Number Of Candle", DefaultValue = 2, MinValue = 1)]
-        public int NumberOfCandle { get; set; }
+		[Parameter("Trail Start", DefaultValue = 17, MinValue = 0)]
+		public double TrailStart{ get; set; }
 
+		[Parameter("Trail Stop", DefaultValue = 11, MinValue = 0)]
+		public double TrailStop{ get; set; }
 
-        [Parameter("Signal Fineness", DefaultValue = 0.01)]
-        public double SignalFineness { get; set; }
+        [Parameter("Global Timeframe")]
+        public TimeFrame GlobalTimeFrame { get; set; }
+
+        [Parameter("Global Candle Ceil", DefaultValue =0, MinValue = 0)]
+		public int MinimumGlobalCandleCeil { get; set; }
+
+		[Parameter("UTC+0 Trade Start", DefaultValue = 7.0)]
+		public double TimeStart { get; set; }
+
+		[Parameter("UTC+0 Trade Stop", DefaultValue = 17.0)]
+		public double TimeStop { get; set; }
+
         #endregion
 
         #region cBot variables
@@ -78,15 +90,19 @@ namespace cAlgo.Robots
         private string _botVersion = Assembly.GetExecutingAssembly().FullName.Split(',')[1].Replace("Version=", "").Trim();
         private string _instanceLabel;
 
-        MultiCandleIndicator _MultiCandleIndicator;
+        CandlestickTendencyII _signalIndicator;
         private bool _debug;
-        bool _isControlSeries;
-
         bool _isBuy;
         int _factor;
         double _gridStep;
         double _actualGainOrLoss = 0;
-        int _nPosition;
+
+		private Object _LockControlSeries = new Object();
+		private bool _isInOnTick;
+
+		DateTime _startTime;
+		DateTime _endTime;
+
         #endregion
 
         #region cBot Events
@@ -100,7 +116,10 @@ namespace cAlgo.Robots
             _botName = ToString();
             _instanceLabel = string.Format("{0}-{1}-{2}-{3}", _botName, _botVersion, Symbol.Code, TimeFrame.ToString());
             _gridStep = GridStep * Symbol.PipSize;
-            _nPosition = nPositions();
+			_isInOnTick = false;
+
+			_startTime = Server.Time.Date.AddHours(TimeStart);
+			_endTime = Server.Time.Date.AddHours(TimeStop);
 
             if (isExistPositions())
             {
@@ -121,35 +140,54 @@ namespace cAlgo.Robots
                 Print("The current symbol minimum baseVolume is {0}", Symbol.VolumeMin);
                 Print("The current symbol maximum baseVolume is {0}", Symbol.VolumeMax);
                 Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
-
             }
 
-            _MultiCandleIndicator = Indicators.GetIndicator<MultiCandleIndicator>(2, SignalFineness);
+			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleCeil);
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
         }
 
+		protected override void OnStop()
+		{
+			base.OnStop();
+
+			this.closeAllPositions(_instanceLabel); // For test only
+		}
+
         /// <summary>
-        ///  Méthode de callback sur chaque tick
+        /// Méthode de callback sur chaque tick.
+		/// L'instruction lock permet de créer une file d'attente des threads souhaitant entrer dans
+		/// ce bloc de code afin que seul un thread à la fois puisse exécuter ce bloc.
         /// </summary>
         protected override void OnTick()
         {
             base.OnTick();
 
-            if (_isControlSeries)
-                return;
+			if(_isInOnTick)
+				return;
 
-            _isControlSeries = true;
+			lock(_LockControlSeries)
+			{
+				_isInOnTick = true;
 
-            ControlSeries();
+				manageStopLoss();
 
-            _isControlSeries = false;
+				_isInOnTick = false;
+			}
+
         }
+
+		protected override void OnBar()
+		{
+			base.OnBar();
+
+			ControlSeries();
+
+		}
 
         private void OnPositionOpened(PositionOpenedEventArgs args)
         {
-            _nPosition++;
         }
 
         private void OnPositionClosed(PositionClosedEventArgs args)
@@ -157,14 +195,12 @@ namespace cAlgo.Robots
             if (args != null && args.Position != null)
                 _actualGainOrLoss += args.Position.NetProfit;
 
-            _nPosition--;
-
         }
-		protected override double GetFitness(GetFitnessArgs args)
-		{
-			//maximize count of winning trades and minimize count of losing trades
-			return args.WinningTrades / args.LosingTrades;
-		}
+        protected override double GetFitness(GetFitnessArgs args)
+        {
+            //maximize count of winning trades and minimize count of losing trades
+            return args.WinningTrades / args.LosingTrades;
+        }
 
         protected override void OnError(Error error)
         {
@@ -172,8 +208,8 @@ namespace cAlgo.Robots
 
             if (errorString != "")
                 Print(errorString);
-        }        
-		#endregion
+        }
+        #endregion
 
         /// <summary>
         /// Gère le control des différentes prises de positions. un seul type de position est pris, le baseVolume des 
@@ -202,39 +238,11 @@ namespace cAlgo.Robots
             }
             else
             {
-                drawSystemInfos();
-                drawPositionsInfos();
+				drawSystemInfos();
+				drawPositionsInfos();
 
                 tradeResult = manageNextOrder();
-
-                if (tradeResult != null && tradeResult.IsSuccessful)
-                {
-
-                }
-
-                //if (tradeResult !=null && tradeResult.IsSuccessful)
-                //	manageStopLossOnLoss();	
             }
-
-            manageStopLoss();
-        }
-
-        /// <summary>
-        /// return a buy or a sell signal, or null if there is no signal.
-        /// </summary>
-        /// <returns></returns>
-        private TradeType? signal()
-        {
-			int index = MarketSeries.Close.Count - 1;
-			
-			if(_MultiCandleIndicator.Signal[index] > 0)
-                return TradeType.Buy;
-
-			if(_MultiCandleIndicator.Signal[index] < 0)
-                return TradeType.Sell;
-
-            return null;
-
         }
 
         /// <summary>
@@ -244,12 +252,36 @@ namespace cAlgo.Robots
         private TradeResult manageFirstOrder()
         {
             TradeResult tradeResult = null;
-            TradeType? tradeTypeSignal = signal();
+			TradeType? tradeTypeSignal = signal();
 
             if (tradeTypeSignal.HasValue)
                 tradeResult = executeOrder(tradeTypeSignal);
 
             return tradeResult;
+        }
+
+        /// <summary>
+        /// return a buy or a sell signal, or null if there is no signal.
+        /// </summary>
+        /// <returns></returns>
+        private TradeType? signal()
+        {
+			// 'Count-1' is the index of the last candle so 'Count-2' is the preview candle
+			// You cannot use 'Count-1' because the Close property is not defined for the last active candle
+			int index = MarketSeries.Close.Count - 1;
+			TradeType? tradeType = null;
+
+			bool test1 = _signalIndicator.GlobalTrendSignal[index]> 0;
+			bool test2 = _signalIndicator.LocalTrendSignal[index] > 0;
+			bool test3 = _signalIndicator.GlobalTrendSignal[index] < 0;
+			bool test4 = _signalIndicator.LocalTrendSignal[index] < 0;
+
+			if(( test1) && (test2))
+				tradeType = TradeType.Buy;
+			if((test3) && (test4))
+				tradeType = TradeType.Sell;
+
+            return tradeType;
         }
 
         /// <summary>
@@ -302,24 +334,31 @@ namespace cAlgo.Robots
         {
             foreach (Position position in Positions.FindAll(_instanceLabel, Symbol))
             {
-                double newStopLoss;
-                double price = (_isBuy ? Symbol.Bid : Symbol.Ask);
-                double ceilCoeffStepOne = 2.0 / 3;
-                double ceilCoeffStepTwo = 1.0 / 3;
 
-                if ((price - position.EntryPrice) * _factor >= 2 * _gridStep)
-                    newStopLoss = price - _factor * ceilCoeffStepOne * _gridStep;
-                else if ((price - position.EntryPrice) * _factor >= _gridStep)
-                    newStopLoss = price - _factor * ceilCoeffStepTwo * _gridStep;
-                else
-                    newStopLoss = averagePrice() - (_factor * ( 1 - ((double)nPositions() / MaxOrders))) * Symbol.PipSize * StopLoss;
+				double newStopLoss = 10000 * (_isBuy ? -1 : 1); //averagePrice() - (_factor * (1 - ((double)nPositions() / MaxOrders))) * Symbol.PipSize * StopLoss;
+                double price = (_isBuy ? Symbol.Bid : Symbol.Ask);
+
+				if (_isBuy)
+				{
+					if ((price - position.EntryPrice) >  TrailStart * Symbol.PipSize + Symbol.Spread)
+						newStopLoss = price - TrailStop * Symbol.PipSize - Symbol.Spread;
+				}
+				else
+				{
+					if ((position.EntryPrice - price) >  TrailStart * Symbol.PipSize + Symbol.Spread)
+						newStopLoss = price - TrailStop * Symbol.PipSize + Symbol.Spread;
+				}
+
+				//else
+				//if((price - position.EntryPrice) * _factor > TrailStart* Symbol.PipSize)
+				//	newStopLoss = price - _factor * TrailStop * Symbol.PipSize;
+				//else
+					//
 
                 if ((newStopLoss.round(this) - position.StopLoss) * _factor > 0)
                     modifyOrder(position, newStopLoss, position.TakeProfit);
-
             }
         }
-
 
         /// <summary>
         /// Modify the stoploss and takeprofit of a taking position.
@@ -405,12 +444,12 @@ namespace cAlgo.Robots
         /// <returns></returns>
         private int nPositions()
         {
-			Position[] positions =  Positions.FindAll(_instanceLabel);
+            Position[] positions = Positions.FindAll(_instanceLabel);
 
-			if(positions != null)
-				return positions.Length;
-			else
-				return 0;
+            if (positions != null)
+                return positions.Length;
+            else
+                return 0;
         }
 
         /// <summary>
@@ -434,20 +473,26 @@ namespace cAlgo.Robots
 
             pipsForNextOrder = priceOfNextOrder - price;
 
-            string textToPrint = "\nSpread\t\t: " + Math.Round(Symbol.Spread * Math.Pow(10, Symbol.Digits), 2) + " ticks" + 
+			// LotSize is a feature of 1.30.58489 version of cAlgo
+			long LotSize = 100000;
+
+            string textToPrint = 
+				"\nSpread\t\t: " + Math.Round(Symbol.Spread * Math.Pow(10, Symbol.Digits), 2) + " ticks" + 
 				"\nAsk\t\t: " + Math.Round(Symbol.Ask, Symbol.Digits) + 
 				"\nMid\t\t: " + Math.Round((Symbol.Ask + Symbol.Bid) / 2, Symbol.Digits) + 
 				"\nBid\t\t: " + Math.Round(Symbol.Bid, Symbol.Digits) + 
 				"\n-----------------" + 
-				"\nPotential Gain\t: indetermined" + "\nPotential Loss\t: " + Math.Round(this.potentialLoss(_instanceLabel), 2) + 
+				"\nMax Orders\t: " + MaxOrders + 
+				"\nPotential Gain\t: indetermined" + 
+				"\nPotential Loss\t: " + Math.Round(this.potentialLoss(_instanceLabel), 2) + 
 				"\nGain or Loss\t: " + Math.Round(_actualGainOrLoss, 2) + " Euros" + 
 				"\n-----------------" + 
-				"\nnext step in\t: " + Math.Round(pipsForNextOrder * Math.Pow(10, Symbol.Digits), 2) + " ticks" + 
-				"\nUp Price\t\t: " + Math.Round(upPrice, Symbol.Digits) + "\nDn Price\t\t: " + Math.Round(dnPrice, Symbol.Digits) + 
+				"\nnext step in\t: " + Math.Round(pipsForNextOrder * Math.Pow(10, Symbol.Digits), 2) + 
+				" ticks" + "\nUp Price\t\t: " + Math.Round(upPrice, Symbol.Digits) + 
+				"\nDn Price\t\t: " + Math.Round(dnPrice, Symbol.Digits) + 
 				"\nNext Order Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + 
 				"\nNext Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + 
-				"\nNext Volume\t: " + Math.Round(computeVolume() / Symbol.LotSize, 2) + 
-				" lots";
+				"\nNext Volume\t: " + Math.Round(computeVolume() / LotSize /*Symbol.LotSize*/, 2) + " lots";
 
             ChartObjects.DrawHorizontalLine("gridLine", priceOfNextOrder, Colors.Navy, 2);
 
@@ -467,12 +512,16 @@ namespace cAlgo.Robots
 
             positionsInfos.AppendFormat(format, "Id", "potential loss", "Pips");
 
-            foreach (Position position in Positions)
+            foreach (Position position in Positions.FindAll(_instanceLabel))
             {
-                double potentialLoss = Math.Round((position.EntryPrice - position.StopLoss.Value) * position.Volume, 2);
-                double pipsToStopLoss = Math.Round(position.stopLossToPips(Symbol).Value, 2);
+				if( position.StopLoss.HasValue)
+				{
+					double potentialLoss = Math.Round((position.EntryPrice - position.StopLoss.Value) * position.Volume, 2);
+					double pipsToStopLoss = Math.Round(position.stopLossToPips(Symbol).Value, 2);
 
-                positionsInfos.AppendFormat(format, position.Id, potentialLoss, pipsToStopLoss);
+					positionsInfos.AppendFormat(format, position.Id, potentialLoss, pipsToStopLoss);				
+				}
+
             }
 
             ChartObjects.DrawText("positionsInfos", positionsInfos.ToString(), StaticPosition.TopRight);
@@ -484,19 +533,19 @@ namespace cAlgo.Robots
         /// <returns></returns>
         private double computeVolume()
         {
-            double maxVolume = this.moneyManagement(Risk, StopLoss);
+			double maxVolume = this.moneyManagement(Risk, StopLoss);
 
-            double nPosition = nPositions();
-            double nRemainingOrders = MaxOrders - nPosition;
-			double alpha = nRemainingOrders/MaxOrders;
+			double nPosition = nPositions();
+			double nRemainingOrders = MaxOrders - nPosition;
+			double alpha = nRemainingOrders / MaxOrders;
 
-            double baseVolume = maxVolume / ((nRemainingOrders+1) + (MartingaleCoeff * (nRemainingOrders+1) * nRemainingOrders / 2.0));
+			double baseVolume = maxVolume / ((nRemainingOrders + 1) + (MartingaleCoeff * (nRemainingOrders + 1) * nRemainingOrders / 2.0));
 
-			baseVolume = (1-alpha) * maxVolume + alpha * baseVolume;
+			baseVolume = alpha * baseVolume + (1 - alpha) * maxVolume;
 
-            double volume = baseVolume * (1 + MartingaleCoeff * nPosition);
+			double volume = baseVolume * (1 + MartingaleCoeff * nPosition);
 
-            return volume;
+			return volume;
         }
 
         /// <summary>
@@ -590,5 +639,20 @@ namespace cAlgo.Robots
 
             return 0;
         }
+
+		private bool isTimeToTrade()
+		{
+			bool isTimeToTrade = (Server.Time.TimeOfDay >= _startTime.TimeOfDay) && (Server.Time.TimeOfDay <= _endTime.TimeOfDay);
+
+			if(!isTimeToTrade)
+			{
+				Print("Start time : {0}, server time : {1}, finish time : {2}", _startTime, Server.Time, _endTime);
+				return false;
+			}
+			else
+				return true;
+			
+
+		}
     }
 }
