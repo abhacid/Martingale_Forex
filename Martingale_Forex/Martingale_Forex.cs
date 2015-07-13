@@ -92,8 +92,8 @@ namespace cAlgo.Robots
 
         CandlestickTendencyII _signalIndicator;
         private bool _debug;
-        bool _isBuy;
-        int _factor;
+        bool? _isBuy;
+        int? _factor;
         double _gridStep;
         double _actualGainOrLoss = 0;
 
@@ -127,6 +127,11 @@ namespace cAlgo.Robots
                 _isBuy = anyPosition.isBuy();
                 _factor = anyPosition.factor();
             }
+			else
+			{
+				_isBuy = null;
+				_factor = null;
+			}
 
             ChartObjects.DrawText("BotVersion", _botName + " " + _botVersion, StaticPosition.TopCenter);
             if (_debug)
@@ -195,6 +200,12 @@ namespace cAlgo.Robots
             if (args != null && args.Position != null)
                 _actualGainOrLoss += args.Position.NetProfit;
 
+			if (isNotExistPositions())
+			{
+				_isBuy = null;
+				_factor = null;
+			}
+
         }
         protected override double GetFitness(GetFitnessArgs args)
         {
@@ -226,7 +237,7 @@ namespace cAlgo.Robots
         {
             TradeResult tradeResult;
 
-            if (isNotExistPositions())
+            if (!_isBuy.HasValue)
             {
                 tradeResult = manageFirstOrder();
 
@@ -242,6 +253,17 @@ namespace cAlgo.Robots
 				drawPositionsInfos();
 
                 tradeResult = manageNextOrder();
+
+				TradeType? tradeType=signal();
+				if (tradeType.HasValue)
+				{
+					TradeType? actualTradeType=tradesType();
+					if (actualTradeType.HasValue && tradeType != actualTradeType)
+					{
+						foreach(Position position in Positions)
+							ClosePosition(position);
+					}
+				}
             }
         }
 
@@ -271,14 +293,14 @@ namespace cAlgo.Robots
 			int index = MarketSeries.Close.Count - 1;
 			TradeType? tradeType = null;
 
-			bool test1 = _signalIndicator.GlobalTrendSignal[index]> 0;
-			bool test2 = _signalIndicator.LocalTrendSignal[index] > 0;
-			bool test3 = _signalIndicator.GlobalTrendSignal[index] < 0;
-			bool test4 = _signalIndicator.LocalTrendSignal[index] < 0;
+			bool isGlobalUp = _signalIndicator.GlobalTrendSignal[index]> 0;
+			bool isLocalUp = _signalIndicator.LocalTrendSignal[index] > 0;
+			bool isGlobalDn = _signalIndicator.GlobalTrendSignal[index] < 0;
+			bool isLocalDn = _signalIndicator.LocalTrendSignal[index] < 0;
 
-			if(( test1) && (test2))
+			if(( isGlobalUp) && (isLocalUp))
 				tradeType = TradeType.Buy;
-			if((test3) && (test4))
+			if((isGlobalDn) && (isLocalDn))
 				tradeType = TradeType.Sell;
 
             return tradeType;
@@ -290,25 +312,25 @@ namespace cAlgo.Robots
         /// <returns></returns>
         private TradeResult manageNextOrder()
         {
-            if (nPositions() >= MaxOrders)
+            if (nPositions() >= MaxOrders || !_isBuy.HasValue)
                 return null;
 
             TradeResult tradeResult = null;
 
             double upPrice = upEntryPrice();
             double dnPrice = dnEntryPrice();
-            double actualPrice = _isBuy ? Symbol.Ask : Symbol.Bid;
+            double actualPrice = _isBuy.Value ? Symbol.Ask : Symbol.Bid;
 
-            if (((actualPrice >= upPrice + _gridStep) && _isBuy) || ((actualPrice <= dnPrice - _gridStep) && !_isBuy))
-                tradeResult = executeOrder(tradeType());
+            if (((actualPrice >= upPrice + _gridStep) && _isBuy.Value) || ((actualPrice <= dnPrice - _gridStep) && !(_isBuy.Value)))
+                tradeResult = executeOrder(tradesType());
 
             return tradeResult;
         }
 
         /// <summary>
-        /// Execute an order of type "tradeType"
+        /// Execute an order of type "tradesType"
         /// </summary>
-        /// <param name="tradeType"></param>
+        /// <param name="tradesType"></param>
         /// <returns></returns>
         private TradeResult executeOrder(TradeType? tradeType)
         {
@@ -334,11 +356,13 @@ namespace cAlgo.Robots
         {
             foreach (Position position in Positions.FindAll(_instanceLabel, Symbol))
             {
+				if(!_isBuy.HasValue)
+					return;
 
-				double newStopLoss = 10000 * (_isBuy ? -1 : 1); //averagePrice() - (_factor * (1 - ((double)nPositions() / MaxOrders))) * Symbol.PipSize * StopLoss;
-                double price = (_isBuy ? Symbol.Bid : Symbol.Ask);
+				double newStopLoss = 10000 * (_isBuy.Value ? -1 : 1); //averagePrices() - (_factor * (1 - ((double)nPositions() / MaxOrders))) * Symbol.PipSize * StopLoss;
+                double price = (_isBuy.Value ? Symbol.Bid : Symbol.Ask);
 
-				if (_isBuy)
+				if (_isBuy.Value)
 				{
 					if ((price - position.EntryPrice) >  TrailStart * Symbol.PipSize + Symbol.Spread)
 						newStopLoss = price - TrailStop * Symbol.PipSize - Symbol.Spread;
@@ -383,7 +407,7 @@ namespace cAlgo.Robots
         {
             StringBuilder comment = new StringBuilder();
 
-            if (isExistPositions())
+            if (_isBuy.HasValue)
             {
                 Position firstPosition = Positions.Find(_instanceLabel);
                 int indexPositions = Positions.FindAll(_instanceLabel).Length + 1;
@@ -397,11 +421,11 @@ namespace cAlgo.Robots
         /// Return the type Buy or Sell of the positions series.
         /// </summary>
         /// <returns></returns>
-        private TradeType? tradeType()
+        private TradeType? tradesType()
         {
             TradeType? tradeType = null;
 
-            if (isExistPositions())
+            if (_isBuy.HasValue)
             {
                 Position anyPosition = Positions.Find(_instanceLabel);
                 tradeType = anyPosition.TradeType;
@@ -457,16 +481,16 @@ namespace cAlgo.Robots
         /// </summary>
         private void drawSystemInfos()
         {
-            if (!isExistPositions())
+            if (!_isBuy.HasValue)
                 return;
 
-            double price = _isBuy ? Symbol.Ask : Symbol.Bid;
+            double price = _isBuy.Value ? Symbol.Ask : Symbol.Bid;
             double upPrice = upEntryPrice();
             double dnPrice = dnEntryPrice();
             double pipsForNextOrder = 0;
             double priceOfNextOrder = 0;
 
-            if (_isBuy)
+            if (_isBuy.Value)
                 priceOfNextOrder = upPrice + _gridStep;
             else
                 priceOfNextOrder = dnPrice - _gridStep;
@@ -504,7 +528,7 @@ namespace cAlgo.Robots
         /// </summary>
         private void drawPositionsInfos()
         {
-            if (!isExistPositions())
+            if (!_isBuy.HasValue)
                 return;
 
             StringBuilder positionsInfos = new StringBuilder();
@@ -553,7 +577,7 @@ namespace cAlgo.Robots
         /// prix pondéré par les volumes correspondants.
         /// </summary>
         /// <returns></returns>
-        private double averagePrice()
+        private double averagePrices()
         {
             double sum = 0;
             long count = 0;
