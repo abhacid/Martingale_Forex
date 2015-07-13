@@ -559,15 +559,9 @@ namespace cAlgo.Robots
         {
 			double maxVolume = this.moneyManagement(Risk, StopLoss);
 
-			double nPosition = nPositions();
-			double nRemainingOrders = MaxOrders - nPosition;
-			double alpha = nRemainingOrders / MaxOrders;
+			double baseVolume = maxVolume / ((MaxOrders + 1) + (MartingaleCoeff * MaxOrders * (MaxOrders + 1)) / 2.0);
 
-			double baseVolume = maxVolume / ((nRemainingOrders + 1) + (MartingaleCoeff * (nRemainingOrders + 1) * nRemainingOrders / 2.0));
-
-			baseVolume = alpha * baseVolume + (1 - alpha) * maxVolume;
-
-			double volume = baseVolume * (1 + MartingaleCoeff * nPosition);
+			double volume = baseVolume * (1 + MartingaleCoeff * nPositions());
 
 			return volume;
         }
