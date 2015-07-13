@@ -35,8 +35,8 @@ et diminue de ce fait le risque de pertes importantes.
 En cas de gain le stop suiveur assure les gains déjà obtenus afin de protéger le capital d'un retournement des prix.
 
 ## Statistiques
-Les dernières statistiques (version 1.3.2.0) peuvent être visualisés sur :
-[AlgoChart](http://www.algochart.com/report/ozdzm).
+Les dernières statistiques (version 1.7.0.0) peuvent être visualisés sur :
+[AlgoChart](http://www.algochart.com/report/j10ge).
 
 ## Utilisation
 D'un point de vue pratique, il est recommandé de cloner la solution dans le répertoire `C:\Users\{user}\Documents\cAlgo\Sources\Robots`. 
@@ -66,11 +66,11 @@ Commissions			: 30 pour EURUSD et 42 pour GBPUSD (Pour Spotware, pour d'autres b
 Il suffit que la valeur moyenne des trades gagnants soit supérieure à celle des trades perdants)
 
 ## Copy Trader
-Vous pouvez copier la stratégie à partir du site 
+Vous pouvez copier la stratégie (v1.7.0.0 du robot) à partir des sites 
 
-cMirror : https://cm.spotware.com/account/196164
+cMirror : https://cm.spotware.com/account/197725 
 
-ou myfxbook : https://www.myfxbook.com/portfolio/mforex/1292743
+ou myfxbook : https://www.myfxbook.com/portfolio/mforex-1700/1304163
 
 ## Vidéos Youtube
 Différentes vidéos sur Youtube sont disponible et expliquent le fonctionnement de l'environnement de développement
@@ -81,6 +81,8 @@ Visual Studio, Github et cAlgo ainsi que le fonctionnement de robots particulier
 [Séance de trading du robot Martingale_Forex](https://www.youtube.com/watch?v=2KzilwPgxgo)
 
 [Robot Martingale_Forex (cTdn)](https://www.youtube.com/watch?v=P6jeiBXK1Rg)
+
+[Déboguage d'un robot en csharp avec visual studio](https://www.youtube.com/watch?v=M3_Mq7G31BA&feature=youtu.be)
 
 
 
