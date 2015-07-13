@@ -65,10 +65,13 @@ namespace cAlgo.Robots
         public double StopLoss { get; set; }
 
 		[Parameter("Trail Start", DefaultValue = 17, MinValue = 0)]
-		public double TrailStart{ get; set; }
+		public double TrailStart { get; set; }
 
 		[Parameter("Trail Stop", DefaultValue = 11, MinValue = 0)]
-		public double TrailStop{ get; set; }
+		public double TrailStop { get; set; }
+
+		[Parameter("Reverse On Signal", DefaultValue = false)]
+		public bool ReverseInOppositeSignal { get; set; }
 
         [Parameter("Global Timeframe")]
         public TimeFrame GlobalTimeFrame { get; set; }
@@ -254,16 +257,20 @@ namespace cAlgo.Robots
 
                 tradeResult = manageNextOrder();
 
-				TradeType? tradeType=signal();
-				if (tradeType.HasValue)
+				if (ReverseInOppositeSignal)
 				{
-					TradeType? actualTradeType=tradesType();
-					if (actualTradeType.HasValue && tradeType != actualTradeType)
+					TradeType? tradeType=signal();
+					if (tradeType.HasValue)
 					{
-						foreach(Position position in Positions)
-							ClosePosition(position);
-					}
+						TradeType? actualTradeType=tradesType();
+						if (actualTradeType.HasValue && tradeType != actualTradeType)
+						{
+							foreach(Position position in Positions)
+								ClosePosition(position);
+						}
+					}				
 				}
+
             }
         }
 
@@ -567,8 +574,8 @@ namespace cAlgo.Robots
         }
 
         /// <summary>
-        /// Calcule la moyenne des prises de positions (prix moyen), c'est un barycentre des 
-        /// prix pondéré par les volumes correspondants.
+        /// Calculate the average price of the entry price position. 
+		/// It's a barycentre of price ponderate by the corresponding volumes position.
         /// </summary>
         /// <returns></returns>
         private double averagePrices()
