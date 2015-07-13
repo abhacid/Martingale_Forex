@@ -346,7 +346,7 @@ namespace cAlgo.Robots
 				else
 				{
 					if ((position.EntryPrice - price) >  TrailStart * Symbol.PipSize + Symbol.Spread)
-						newStopLoss = price - TrailStop * Symbol.PipSize + Symbol.Spread;
+						newStopLoss = price + TrailStop * Symbol.PipSize + Symbol.Spread;
 				}
 
 				//else
