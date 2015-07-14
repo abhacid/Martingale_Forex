@@ -59,7 +59,10 @@ namespace cAlgo.Robots
         public int MaxOrders { get; set; }
 
         [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0.01)]
-        public double Risk { get; set; }
+        public double RiskPercent { get; set; }
+
+        [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
+        public double WeakVolumePercent { get; set; }
 
         [Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
         public double StopLoss { get; set; }
@@ -92,11 +95,13 @@ namespace cAlgo.Robots
         private string _botName;
         private string _botVersion = Assembly.GetExecutingAssembly().FullName.Split(',')[1].Replace("Version=", "").Trim();
         private string _instanceLabel;
+		enum SignalType { StrongBuy, StrongSell, StrongNeutral, WeakBuy, WeakSell, WeakNeutral, Neutral}
 
         CandlestickTendencyII _signalIndicator;
         private bool _debug;
         bool? _isBuy;
         int? _factor;
+		SignalType _signalType;
         double _gridStep;
         double _actualGainOrLoss = 0;
 
@@ -126,14 +131,18 @@ namespace cAlgo.Robots
 
             if (isExistPositions())
             {
-                Position anyPosition = firstPosition();
-                _isBuy = anyPosition.isBuy();
-                _factor = anyPosition.factor();
+                Position firstTradedPosition = firstPosition();
+                _isBuy = firstTradedPosition.isBuy();
+                _factor = firstTradedPosition.factor();
+
+				if(!(Enum.TryParse<SignalType>(firstTradedPosition.Comment, out _signalType)))
+					_signalType = SignalType.Neutral;
             }
 			else
 			{
 				_isBuy = null;
 				_factor = null;
+				_signalType = SignalType.Neutral;
 			}
 
             ChartObjects.DrawText("BotVersion", _botName + " " + _botVersion, StaticPosition.TopCenter);
@@ -160,7 +169,7 @@ namespace cAlgo.Robots
 		{
 			base.OnStop();
 
-			this.closeAllPositions(_instanceLabel); // For test only
+			//this.closeAllPositions(_instanceLabel); // For test only
 		}
 
         /// <summary>
@@ -207,6 +216,7 @@ namespace cAlgo.Robots
 			{
 				_isBuy = null;
 				_factor = null;
+				_signalType = SignalType.Neutral;
 			}
 
         }
@@ -240,11 +250,13 @@ namespace cAlgo.Robots
         {
             TradeResult tradeResult;
 
+			double volume = computeVolume();
+
             if (!_isBuy.HasValue)
             {
 				if(isTimeToTrade())
 				{
-					tradeResult = manageFirstOrder();
+					tradeResult = manageFirstOrder(volume);
 
 					if(tradeResult != null && tradeResult.IsSuccessful)
 					{
@@ -259,19 +271,20 @@ namespace cAlgo.Robots
 				drawPositionsInfos();
 
 				if(isTimeToTrade())
-					tradeResult = manageNextOrder();
+					tradeResult = manageNextOrder(volume);
 
 				if (ReverseInOppositeSignal)
 				{
-					TradeType? tradeType=signal();
-					if (tradeType.HasValue)
+					SignalType newSignalType = signal();
+					if(!isNeutralSignal(newSignalType))
 					{
-						TradeType? actualTradeType=tradesType();
-						if (actualTradeType.HasValue && tradeType != actualTradeType)
-						{
+						if ((_signalType == SignalType.StrongBuy && newSignalType == SignalType.StrongSell) || 
+							(_signalType == SignalType.StrongSell && newSignalType == SignalType.StrongBuy) ||
+							(_signalType == SignalType.WeakBuy && isSellSignal(newSignalType)) ||
+							(_signalType == SignalType.WeakSell && isBuySignal(newSignalType)))
+							
 							foreach(Position position in Positions)
 								ClosePosition(position);
-						}
 					}				
 				}
 
@@ -282,46 +295,31 @@ namespace cAlgo.Robots
         /// Manage the first order.
         /// </summary>
         /// <returns></returns>
-        private TradeResult manageFirstOrder()
+        private TradeResult manageFirstOrder(double strongVolume)
         {
             TradeResult tradeResult = null;
-			TradeType? tradeTypeSignal = signal();
+			SignalType signalType = signal();
+			double volume = strongVolume;
 
-            if (tradeTypeSignal.HasValue)
-                tradeResult = executeOrder(tradeTypeSignal);
+            if (!isNeutralSignal(signalType))
+			{
+				if(isWeakSignal(signalType))
+					volume = strongVolume * WeakVolumePercent / 100;
+
+				tradeResult = executeOrder(tradeType(signalType), volume, signalType.ToString());
+
+				if (tradeResult!=null && tradeResult.IsSuccessful)
+					_signalType = signalType;
+			}
 
             return tradeResult;
-        }
-
-        /// <summary>
-        /// return a buy or a sell signal, or null if there is no signal.
-        /// </summary>
-        /// <returns></returns>
-        private TradeType? signal()
-        {
-			// 'Count-1' is the index of the last candle so 'Count-2' is the preview candle
-			// You cannot use 'Count-1' because the Close property is not defined for the last active candle
-			int index = MarketSeries.Close.Count - 1;
-			TradeType? tradeType = null;
-
-			bool isGlobalUp = _signalIndicator.GlobalTrendSignal[index]> 0;
-			bool isLocalUp = _signalIndicator.LocalTrendSignal[index] > 0;
-			bool isGlobalDn = _signalIndicator.GlobalTrendSignal[index] < 0;
-			bool isLocalDn = _signalIndicator.LocalTrendSignal[index] < 0;
-
-			if(( isGlobalUp) && (isLocalUp))
-				tradeType = TradeType.Buy;
-			if((isGlobalDn) && (isLocalDn))
-				tradeType = TradeType.Sell;
-
-            return tradeType;
         }
 
         /// <summary>
         /// Manage the others orders.
         /// </summary>
         /// <returns></returns>
-        private TradeResult manageNextOrder()
+        private TradeResult manageNextOrder(double volume)
         {
             if (nPositions() >= MaxOrders || !_isBuy.HasValue)
                 return null;
@@ -333,7 +331,10 @@ namespace cAlgo.Robots
             double actualPrice = _isBuy.Value ? Symbol.Ask : Symbol.Bid;
 
             if (((actualPrice >= upPrice + _gridStep) && _isBuy.Value) || ((actualPrice <= dnPrice - _gridStep) && !(_isBuy.Value)))
-                tradeResult = executeOrder(tradesType());
+			{
+				double newVolume = (isStrongSignal(_signalType) ? volume : volume * WeakVolumePercent / 100);
+                tradeResult = executeOrder(tradesType(), newVolume,_signalType.ToString());
+			}
 
             return tradeResult;
         }
@@ -343,16 +344,20 @@ namespace cAlgo.Robots
         /// </summary>
         /// <param name="tradesType"></param>
         /// <returns></returns>
-        private TradeResult executeOrder(TradeType? tradeType)
+        private TradeResult executeOrder(TradeType? tradeType, double volume, string prefixComment)
         {
             if (!(tradeType.HasValue))
                 return null;
 
             TradeResult tradeResult = null;
 
-            double volume = computeVolume();
-            if (volume >= Symbol.VolumeMin)
-                tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel, StopLoss, null, 10, comment());
+			if(volume >= Symbol.VolumeMin)
+			{
+				tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel, StopLoss, null, 10, comment(prefixComment));
+
+				if(tradeResult != null && tradeResult.IsSuccessful)
+					Print(prefixComment);
+			}
 
 
             return tradeResult;
@@ -411,18 +416,92 @@ namespace cAlgo.Robots
         }
 
         /// <summary>
+        /// return a a signal of type SignaType in synchronisation with the signal indicator.
+		/// 
+		/// 'Count-1' is the index of the last candle so 'Count-2' is the preview candle
+		/// You cannot use 'Count-1' because the Close property is not defined for the last 
+		/// active candle, but CandleStickTendency use 
+        /// </summary>
+        /// <returns></returns>
+        private SignalType signal()
+        {
+			int index = MarketSeries.Close.Count - 1;
+			SignalType signalType = SignalType.Neutral;
+
+			bool isGlobalUp = _signalIndicator.GlobalTrendSignal[index]> 0;
+			bool isLocalUp = _signalIndicator.LocalTrendSignal[index] > 0;
+			bool isGlobalDn = _signalIndicator.GlobalTrendSignal[index] < 0;
+			bool isLocalDn = _signalIndicator.LocalTrendSignal[index] < 0;
+
+			if(isGlobalUp)
+			{
+				if(isLocalUp)
+					signalType = SignalType.StrongBuy;
+				else
+					if(isLocalDn)
+						signalType = SignalType.WeakSell;
+					else
+						signalType = SignalType.WeakNeutral;
+			}
+			else
+				if(isGlobalDn)
+				{
+					if(isLocalDn)
+						signalType = SignalType.StrongSell;
+					else
+						if(isLocalUp)
+							signalType = SignalType.WeakBuy;
+						else
+							signalType = SignalType.WeakNeutral;
+				}
+				else
+					if(isLocalUp || isLocalDn)
+						signalType = SignalType.StrongNeutral;
+					else
+						signalType = SignalType.Neutral;
+
+            return signalType;
+        }
+
+		private bool isStrongSignal(SignalType signalType)
+		{
+			return (signalType == SignalType.StrongBuy || signalType == SignalType.StrongSell);
+		}
+		private bool isWeakSignal(SignalType signalType)
+		{
+			return (signalType == SignalType.WeakBuy || signalType == SignalType.WeakSell);
+		}
+
+		private bool isBuySignal(SignalType signalType)
+		{
+			return (signalType == SignalType.StrongBuy || signalType == SignalType.WeakBuy);
+		}
+
+		private bool isSellSignal(SignalType signalType)
+		{
+			return (signalType == SignalType.StrongSell || signalType == SignalType.WeakSell);
+		}
+
+		private bool isNeutralSignal(SignalType signalType)
+		{
+			return (signalType == SignalType.StrongNeutral || signalType == SignalType.WeakNeutral || signalType == SignalType.Neutral);
+		}
+
+        /// <summary>
         /// Add an index of the position in the comment position.
         /// </summary>
         /// <returns></returns>
-        private string comment()
+        private string comment(string prefix)
         {
-            StringBuilder comment = new StringBuilder();
+            StringBuilder comment = new StringBuilder(prefix);
 
             if (_isBuy.HasValue)
             {
                 Position firstPosition = Positions.Find(_instanceLabel);
                 int indexPositions = Positions.FindAll(_instanceLabel).Length + 1;
-                comment.AppendFormat("{0}-{1}", firstPosition.Id.ToString(), indexPositions.ToString());
+				string format = (prefix.Length != 0) ? "-{0}-{1}" : "{0}-{1}";
+
+                comment.AppendFormat(format, firstPosition.Id.ToString(), indexPositions.ToString());
             }
 
             return comment.ToString();
@@ -443,7 +522,25 @@ namespace cAlgo.Robots
             }
 
             return tradeType;
+        }
 
+        /// <summary>
+        /// Return the type Buy or Sell or null in correspondance with Signal type.
+        /// </summary>
+        /// <returns></returns>
+        private TradeType? tradeType(SignalType signalType)
+        {
+            TradeType? tradeType = null;
+
+			if(signalType == SignalType.StrongBuy || signalType == SignalType.WeakBuy)
+				tradeType = TradeType.Buy;
+			else
+				if(signalType == SignalType.StrongSell || signalType == SignalType.WeakSell)
+					tradeType = TradeType.Sell;
+				else
+					tradeType = null;
+
+            return tradeType;
         }
 
         /// <summary>
@@ -568,7 +665,7 @@ namespace cAlgo.Robots
         /// <returns></returns>
         private double computeVolume()
         {
-			double maxVolume = this.moneyManagement(Risk, StopLoss);
+			double maxVolume = this.moneyManagement(RiskPercent, StopLoss);
 
 			double baseVolume = maxVolume / ((MaxOrders + 1) + (MartingaleCoeff * MaxOrders * (MaxOrders + 1)) / 2.0);
 
