@@ -79,10 +79,10 @@ namespace cAlgo.Robots
         [Parameter("Global Candle Ceil", DefaultValue =0, MinValue = 0)]
 		public int MinimumGlobalCandleCeil { get; set; }
 
-		[Parameter("UTC+0 Trade Start", DefaultValue = 7.0)]
+		[Parameter("UTC+0 Trade Start", DefaultValue = 0.0)]
 		public double TimeStart { get; set; }
 
-		[Parameter("UTC+0 Trade Stop", DefaultValue = 17.0)]
+		[Parameter("UTC+0 Trade Stop", DefaultValue = 24.0)]
 		public double TimeStop { get; set; }
 
         #endregion
@@ -242,20 +242,24 @@ namespace cAlgo.Robots
 
             if (!_isBuy.HasValue)
             {
-                tradeResult = manageFirstOrder();
+				if(isTimeToTrade())
+				{
+					tradeResult = manageFirstOrder();
 
-                if (tradeResult != null && tradeResult.IsSuccessful)
-                {
-                    _isBuy = tradeResult.Position.isBuy();
-                    _factor = tradeResult.Position.factor();
-                }
+					if(tradeResult != null && tradeResult.IsSuccessful)
+					{
+						_isBuy = tradeResult.Position.isBuy();
+						_factor = tradeResult.Position.factor();
+					}
+				}
             }
             else
             {
 				drawSystemInfos();
 				drawPositionsInfos();
 
-                tradeResult = manageNextOrder();
+				if(isTimeToTrade())
+					tradeResult = manageNextOrder();
 
 				if (ReverseInOppositeSignal)
 				{
