@@ -47,7 +47,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Backtests\live Martingale_Forex v1.7.0.x" />
+    <Content Include="Backtests\live Martingale_Forex v1.7.0.x.jpg" />
     <None Include="Backtests\Martingale_Forex 1.7.0.3, EURUSD m15.cbotset" />
     <None Include="Backtests\Martingale_Forex v1.7.0.0, EURUSD m5.cbotset" />
     <None Include="Backtests\Martingale_Forex v1.7.0.0, EURUSD m8-statistiques.url" />
