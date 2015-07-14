@@ -1,0 +1,17 @@
+﻿[ChartParameters]
+Symbol = EURUSD
+Timeframe = m10
+
+[cBotParameters]
+MartingaleCoeff = 0.5
+GridStep = 19
+MaxOrders = 1
+Risk = 2
+StopLoss = 38
+TrailStart = 43
+TrailStop = 47
+ReverseInOppositeSignal = False
+GlobalTimeFrame = Hour
+MinimumGlobalCandleCeil = 47
+TimeStart = 7
+TimeStop = 17

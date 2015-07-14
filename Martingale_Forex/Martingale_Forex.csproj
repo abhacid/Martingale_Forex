@@ -47,11 +47,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Backtests\live Martingale_Forex v1.7.0.x" />
     <None Include="Backtests\Martingale_Forex 1.7.0.3, EURUSD m15.cbotset" />
     <None Include="Backtests\Martingale_Forex v1.7.0.0, EURUSD m5.cbotset" />
     <None Include="Backtests\Martingale_Forex v1.7.0.0, EURUSD m8-statistiques.url" />
     <None Include="Backtests\Martingale_Forex v1.7.0.3, EURUSD m5.cbotset" />
     <None Include="Backtests\Martingale_Forex v1.7.0.3, EURUSD m8.cbotset" />
+    <None Include="Backtests\Martingale_Forex v1.7.0.4, EURUSD m10.cbotset" />
     <None Include="Backtests\Martingale_Forex v1.7.0.4, EURUSD m8-3an et 6mois.cbotset" />
     <None Include="Martingale_Forex.url" />
     <None Include="mfxbook stats.url" />
@@ -61,6 +63,7 @@
     <Content Include="Backtests\Martingale_Forex v1.7.0.0, EURUSD m5.jpg" />
     <Content Include="Backtests\Martingale_Forex v1.7.0.3, EURUSD m5.jpg" />
     <Content Include="Backtests\Martingale_Forex v1.7.0.3, EURUSD m8.JPG" />
+    <Content Include="Backtests\Martingale_Forex v1.7.0.4, EURUSD m10.JPG" />
     <Content Include="Backtests\Martingale_Forex v1.7.0.4, EURUSD m8-3an et 6mois.JPG" />
     <Content Include="Backtests\Martingale_Forex-backtests %28false results%29.jpg" />
     <Content Include="Backtests\Martingale_Forex-Live-old version.jpg" />
