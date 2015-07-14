@@ -463,25 +463,51 @@ namespace cAlgo.Robots
             return signalType;
         }
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="signalType"></param>
+		/// <returns></returns>
 		private bool isStrongSignal(SignalType signalType)
 		{
 			return (signalType == SignalType.StrongBuy || signalType == SignalType.StrongSell);
 		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="signalType"></param>
+		/// <returns></returns>
 		private bool isWeakSignal(SignalType signalType)
 		{
 			return (signalType == SignalType.WeakBuy || signalType == SignalType.WeakSell);
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="signalType"></param>
+		/// <returns></returns>
 		private bool isBuySignal(SignalType signalType)
 		{
 			return (signalType == SignalType.StrongBuy || signalType == SignalType.WeakBuy);
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="signalType"></param>
+		/// <returns></returns>
 		private bool isSellSignal(SignalType signalType)
 		{
 			return (signalType == SignalType.StrongSell || signalType == SignalType.WeakSell);
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="signalType"></param>
+		/// <returns></returns>
 		private bool isNeutralSignal(SignalType signalType)
 		{
 			return (signalType == SignalType.StrongNeutral || signalType == SignalType.WeakNeutral || signalType == SignalType.Neutral);
