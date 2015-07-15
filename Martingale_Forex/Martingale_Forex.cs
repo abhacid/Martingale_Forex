@@ -284,7 +284,7 @@ namespace cAlgo.Robots
 							(_signalType == SignalType.WeakSell && isBuySignal(newSignalType)))
 							
 							foreach(Position position in Positions)
-								ClosePosition(position);
+								ClosePositionAsync(position); // Async in order to accelerate the close of positions.
 					}				
 				}
 
