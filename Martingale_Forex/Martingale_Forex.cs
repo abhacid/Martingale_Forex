@@ -17,7 +17,7 @@
 //DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// Project Hosting for Open Source Software on Github : https://github.com/abhacid/Robot_Forex
+// Project Hosting for Open Source Software on Github : https://github.com/abhacid/Martingale_Forex
 #endregion
 
 #region Description
@@ -49,29 +49,32 @@ namespace cAlgo.Robots
     {
         #region cBot Parameters
 
-        [Parameter("Martingale Coefficient", DefaultValue = 0.5, MinValue = 0)]
-        public double MartingaleCoeff { get; set; }
+		[Parameter("UTC+0 Trade Start", DefaultValue = 0.0)]
+		public double TimeStart { get; set; }
 
+		[Parameter("UTC+0 Trade Stop", DefaultValue = 24.0)]
+		public double TimeStop { get; set; } 
+       
         [Parameter("Grid Step", DefaultValue = 11, MinValue = 0.1)]
-        public double GridStep { get; set; }
+        public int GridStep { get; set; }
+
+		[Parameter("Martingale Coefficient", DefaultValue = 0.5, MinValue = 0)]
+        public double MartingaleCoeff { get; set; }
 
         [Parameter("Max Orders", DefaultValue = 20, MinValue = 1)]
         public int MaxOrders { get; set; }
 
         [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0.01)]
         public double RiskPercent { get; set; }
-
-        [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
-        public double WeakVolumePercent { get; set; }
-
+		
         [Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
-        public double StopLoss { get; set; }
+        public int StopLoss { get; set; }
 
 		[Parameter("Trail Start", DefaultValue = 17, MinValue = 0)]
-		public double TrailStart { get; set; }
+		public int TrailStart { get; set; }
 
 		[Parameter("Trail Stop", DefaultValue = 11, MinValue = 0)]
-		public double TrailStop { get; set; }
+		public int TrailStop { get; set; }
 
 		[Parameter("Reverse On Signal", DefaultValue = false)]
 		public bool ReverseInOppositeSignal { get; set; }
@@ -79,14 +82,16 @@ namespace cAlgo.Robots
         [Parameter("Global Timeframe")]
         public TimeFrame GlobalTimeFrame { get; set; }
 
+        [Parameter("Global MA Ceil Coefficient", DefaultValue = 0.618)]
+        public double GlobalCeilCoefficient { get; set; }
+
         [Parameter("Global Candle Ceil", DefaultValue =0, MinValue = 0)]
 		public int MinimumGlobalCandleCeil { get; set; }
 
-		[Parameter("UTC+0 Trade Start", DefaultValue = 0.0)]
-		public double TimeStart { get; set; }
+        [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
+        public double WeakVolumePercent { get; set; }
 
-		[Parameter("UTC+0 Trade Stop", DefaultValue = 24.0)]
-		public double TimeStop { get; set; }
+
 
         #endregion
 
@@ -354,9 +359,6 @@ namespace cAlgo.Robots
 			if(volume >= Symbol.VolumeMin)
 			{
 				tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel, StopLoss, null, 10, comment(prefixComment));
-
-				if(tradeResult != null && tradeResult.IsSuccessful)
-					Print(prefixComment);
 			}
 
 
@@ -428,39 +430,40 @@ namespace cAlgo.Robots
 			int index = MarketSeries.Close.Count - 1;
 			SignalType signalType = SignalType.Neutral;
 
+			int period = 2 * (int) (GlobalTimeFrame.ToTimeSpan().Ticks / MarketSeries.TimeFrame.ToTimeSpan().Ticks);
+
+			double volatility = _signalIndicator.LocalMA.volatility(period);
+
 			bool isGlobalUp = _signalIndicator.GlobalTrendSignal[index]> 0;
 			bool isLocalUp = _signalIndicator.LocalTrendSignal[index] > 0;
-			bool isGlobalDn = _signalIndicator.GlobalTrendSignal[index] < 0;
-			bool isLocalDn = _signalIndicator.LocalTrendSignal[index] < 0;
+			bool isLocalMAOverThreshold = _signalIndicator.LocalMA[index] > GlobalCeilCoefficient * volatility / 2;
+			bool isGlobalDown = _signalIndicator.GlobalTrendSignal[index] < 0;
+			bool isLocalDown = _signalIndicator.LocalTrendSignal[index] < 0;
+			bool isLocalMABelowThreshold = _signalIndicator.LocalMA[index] < -GlobalCeilCoefficient * volatility/2;
 
-			if(isGlobalUp)
-			{
-				if(isLocalUp)
-					signalType = SignalType.StrongBuy;
-				else
-					if(isLocalDn)
-						signalType = SignalType.WeakSell;
-					else
-						signalType = SignalType.WeakNeutral;
-			}
+			if (!isGlobalUp && !isGlobalDown && !isLocalUp && !isLocalDown)
+				signalType = SignalType.Neutral;
+
+			if(!isGlobalUp && !isGlobalDown)
+				signalType = SignalType.StrongNeutral;
+
+			if(!isLocalUp && !isLocalDown)
+				signalType = SignalType.WeakNeutral;
+
+			if(isLocalUp)
+				signalType = SignalType.WeakBuy;
 			else
-				if(isGlobalDn)
-				{
-					if(isLocalDn)
-						signalType = SignalType.StrongSell;
-					else
-						if(isLocalUp)
-							signalType = SignalType.WeakBuy;
-						else
-							signalType = SignalType.WeakNeutral;
-				}
-				else
-					if(isLocalUp || isLocalDn)
-						signalType = SignalType.StrongNeutral;
-					else
-						signalType = SignalType.Neutral;
+				if(isLocalDown)
+					signalType = SignalType.WeakSell;	
 
-            return signalType;
+			if(isLocalMABelowThreshold)
+				signalType = SignalType.StrongBuy;
+			else
+				if (isLocalMAOverThreshold)
+					signalType = SignalType.StrongSell;
+			
+
+			return signalType;
         }
 
 		/// <summary>
@@ -794,11 +797,12 @@ namespace cAlgo.Robots
 
 		private bool isTimeToTrade()
 		{
-			bool isTimeToTrade = (Server.Time.TimeOfDay >= _startTime.TimeOfDay) && (Server.Time.TimeOfDay <= _endTime.TimeOfDay);
+
+			bool isTimeToTrade = (Server.Time.TimeOfDay >= _startTime.TimeOfDay) && (Server.Time.TimeOfDay <= _endTime.TimeOfDay || _endTime.Day == _startTime.Day+1);
 
 			if(!isTimeToTrade)
 			{
-				Print("Start time : {0}, server time : {1}, finish time : {2}", _startTime, Server.Time, _endTime);
+				Print("Start time : {0}, server time : {1}, finish time : {2}", _startTime.TimeOfDay, Server.Time.TimeOfDay, _endTime.TimeOfDay);
 				return false;
 			}
 			else
