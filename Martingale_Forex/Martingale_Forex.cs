@@ -38,6 +38,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using cAlgo.API;
+using cAlgo.API.Indicators;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
 using cAlgo.Strategies;
@@ -67,14 +68,20 @@ namespace cAlgo.Robots
         [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0.01)]
         public double RiskPercent { get; set; }
 		
-        [Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
-        public int StopLoss { get; set; }
+		//[Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
+		//public int _stopLoss { get; set; }
 
-		[Parameter("Trail Start", DefaultValue = 17, MinValue = 0)]
-		public int TrailStart { get; set; }
+		//[Parameter("Trail Start", DefaultValue = 17, MinValue = 0)]
+		//public int TrailStart { get; set; }
 
-		[Parameter("Trail Stop", DefaultValue = 11, MinValue = 0)]
-		public int TrailStop { get; set; }
+		//[Parameter("Trail Stop", DefaultValue = 11, MinValue = 0)]
+		//public int TrailStop { get; set; }
+
+		[Parameter("ATR Period", DefaultValue = 14)]
+		public int AtrPeriod { get; set; }
+
+		[Parameter("ATR Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
+		public MovingAverageType AtrMovingAverageType { get; set; }
 
 		[Parameter("Reverse On Signal", DefaultValue = false)]
 		public bool ReverseInOppositeSignal { get; set; }
@@ -102,6 +109,7 @@ namespace cAlgo.Robots
         private string _instanceLabel;
 		enum SignalType { StrongBuy, StrongSell, StrongNeutral, WeakBuy, WeakSell, WeakNeutral, Neutral}
 
+		AverageTrueRange _atr;
         CandlestickTendencyII _signalIndicator;
         private bool _debug;
         bool? _isBuy;
@@ -120,7 +128,92 @@ namespace cAlgo.Robots
 
         #region cBot Events
 
-        protected override void OnStart()
+		#region Properties
+		/// <summary>
+		/// Calculate the stoploss in correlation with Average True Range (ATR)
+		/// </summary>
+		private double? StopLoss
+		{
+			
+			get{ return _atr.Result.lastRealValue(0); }
+		}
+
+		/// <summary>
+		/// Calculate the volume of the position to take with money management considerations.
+		/// </summary>
+		/// <returns></returns>
+		private double Volume
+		{
+			get
+			{
+				double maxVolume = this.moneyManagement(RiskPercent, StopLoss, false);
+
+				double baseVolume = maxVolume / ((MaxOrders + 1) + (MartingaleCoeff * MaxOrders * (MaxOrders + 1)) / 2.0);
+
+				double volume = baseVolume * (1 + MartingaleCoeff * nPositions());
+
+				return volume;
+			}
+
+		}
+
+		/// <summary>
+		/// Add an index to the comment position.
+		/// </summary>
+		/// <returns></returns>
+		private string Comment
+		{
+			get
+			{
+				StringBuilder comment = new StringBuilder(_signalType.ToString());
+
+				if(_isBuy.HasValue)
+				{
+					Position firstPosition = Positions.Find(_instanceLabel);
+					int indexPositions = Positions.FindAll(_instanceLabel).Length + 1;
+					string format = (_signalType.ToString().Length != 0) ? "-{0}-{1}" : "{0}-{1}";
+
+					comment.AppendFormat(format, firstPosition.Id.ToString(), indexPositions.ToString());
+				}
+
+				return comment.ToString();			
+			}
+
+		}
+
+		/// <summary>
+		/// Return the type Buy or Sell of the positions series.
+		/// </summary>
+		/// <returns></returns>
+		private TradeType? TradesType
+		{
+			get
+			{
+			TradeType? tradeType = null;
+
+			if(_isBuy.HasValue)
+			{
+				Position anyPosition = Positions.Find(_instanceLabel);
+				tradeType = anyPosition.TradeType;
+			}
+
+			return tradeType;			
+			}
+		}
+
+		/// <summary>
+		/// Return the first position of all taking positions.
+		/// </summary>
+		/// <returns></returns>
+		private Position FirstPosition
+		{
+			get{return Positions.Find(_instanceLabel);}
+		}
+
+		#endregion
+
+
+		protected override void OnStart()
         {
             base.OnStart();
 
@@ -136,7 +229,7 @@ namespace cAlgo.Robots
 
             if (isExistPositions())
             {
-                Position firstTradedPosition = firstPosition();
+                Position firstTradedPosition = FirstPosition;
                 _isBuy = firstTradedPosition.isBuy();
                 _factor = firstTradedPosition.factor();
 
@@ -164,6 +257,7 @@ namespace cAlgo.Robots
                 Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
             }
 
+			_atr = Indicators.AverageTrueRange(MarketSeries, 14, MovingAverageType.Exponential);
 			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleCeil);
 
             Positions.Opened += OnPositionOpened;
@@ -255,13 +349,11 @@ namespace cAlgo.Robots
         {
             TradeResult tradeResult;
 
-			double volume = computeVolume();
-
             if (!_isBuy.HasValue)
             {
 				if(isTimeToTrade())
 				{
-					tradeResult = manageFirstOrder(volume);
+					tradeResult = manageFirstOrder(Volume);
 
 					if(tradeResult != null && tradeResult.IsSuccessful)
 					{
@@ -276,11 +368,11 @@ namespace cAlgo.Robots
 				drawPositionsInfos();
 
 				if(isTimeToTrade())
-					tradeResult = manageNextOrder(volume);
+					tradeResult = manageNextOrder(Volume);
 
 				if (ReverseInOppositeSignal)
 				{
-					SignalType newSignalType = signal();
+					SignalType newSignalType = determineSignal();
 					if(!isNeutralSignal(newSignalType))
 					{
 						if ((_signalType == SignalType.StrongBuy && newSignalType == SignalType.StrongSell) || 
@@ -303,7 +395,7 @@ namespace cAlgo.Robots
         private TradeResult manageFirstOrder(double strongVolume)
         {
             TradeResult tradeResult = null;
-			SignalType signalType = signal();
+			SignalType signalType = determineSignal();
 			double volume = strongVolume;
 
             if (!isNeutralSignal(signalType))
@@ -311,7 +403,7 @@ namespace cAlgo.Robots
 				if(isWeakSignal(signalType))
 					volume = strongVolume * WeakVolumePercent / 100;
 
-				tradeResult = executeOrder(tradeType(signalType), volume, signalType.ToString());
+				tradeResult = executeOrder(tradeType(signalType), volume);
 
 				if (tradeResult!=null && tradeResult.IsSuccessful)
 					_signalType = signalType;
@@ -338,7 +430,7 @@ namespace cAlgo.Robots
             if (((actualPrice >= upPrice + _gridStep) && _isBuy.Value) || ((actualPrice <= dnPrice - _gridStep) && !(_isBuy.Value)))
 			{
 				double newVolume = (isStrongSignal(_signalType) ? volume : volume * WeakVolumePercent / 100);
-                tradeResult = executeOrder(tradesType(), newVolume,_signalType.ToString());
+                tradeResult = executeOrder(TradesType, newVolume);
 			}
 
             return tradeResult;
@@ -349,7 +441,7 @@ namespace cAlgo.Robots
         /// </summary>
         /// <param name="tradesType"></param>
         /// <returns></returns>
-        private TradeResult executeOrder(TradeType? tradeType, double volume, string prefixComment)
+        private TradeResult executeOrder(TradeType? tradeType, double volume)
         {
             if (!(tradeType.HasValue))
                 return null;
@@ -358,7 +450,8 @@ namespace cAlgo.Robots
 
 			if(volume >= Symbol.VolumeMin)
 			{
-				tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, Symbol.NormalizeVolume(volume, RoundingMode.ToNearest), _instanceLabel, StopLoss, null, 10, comment(prefixComment));
+				long normalizedVolume = Symbol.NormalizeVolume(volume, RoundingMode.ToNearest);
+				tradeResult = ExecuteMarketOrder(tradeType.Value, Symbol, normalizedVolume, _instanceLabel, null, null, 10, Comment);
 			}
 
 
@@ -372,32 +465,14 @@ namespace cAlgo.Robots
         /// <returns></returns>
         private void manageStopLoss()
         {
+			if(!_isBuy.HasValue)
+				return;
+
             foreach (Position position in Positions.FindAll(_instanceLabel, Symbol))
             {
-				if(!_isBuy.HasValue)
-					return;
+				double newStopLoss = (_isBuy.Value ? Symbol.Bid : Symbol.Ask) - _factor.Value * StopLoss.Value; 
 
-				double newStopLoss = 10000 * (_isBuy.Value ? -1 : 1); //averagePrices() - (_factor * (1 - ((double)nPositions() / MaxOrders))) * Symbol.PipSize * StopLoss;
-                double price = (_isBuy.Value ? Symbol.Bid : Symbol.Ask);
-
-				if (_isBuy.Value)
-				{
-					if ((price - position.EntryPrice) >  TrailStart * Symbol.PipSize + Symbol.Spread)
-						newStopLoss = price - TrailStop * Symbol.PipSize - Symbol.Spread;
-				}
-				else
-				{
-					if ((position.EntryPrice - price) >  TrailStart * Symbol.PipSize + Symbol.Spread)
-						newStopLoss = price + TrailStop * Symbol.PipSize + Symbol.Spread;
-				}
-
-				//else
-				//if((price - position.EntryPrice) * _factor > TrailStart* Symbol.PipSize)
-				//	newStopLoss = price - _factor * TrailStop * Symbol.PipSize;
-				//else
-					//
-
-                if ((newStopLoss.round(this) - position.StopLoss) * _factor > 0)
+                if (!(position.StopLoss.HasValue) || (newStopLoss.round(this) - position.StopLoss) * _factor > 0)
                     modifyOrder(position, newStopLoss, position.TakeProfit);
             }
         }
@@ -425,7 +500,7 @@ namespace cAlgo.Robots
 		/// active candle, but CandleStickTendency use 
         /// </summary>
         /// <returns></returns>
-        private SignalType signal()
+        private SignalType determineSignal()
         {
 			int index = MarketSeries.Close.Count - 1;
 			SignalType signalType = SignalType.Neutral;
@@ -516,50 +591,13 @@ namespace cAlgo.Robots
 			return (signalType == SignalType.StrongNeutral || signalType == SignalType.WeakNeutral || signalType == SignalType.Neutral);
 		}
 
-        /// <summary>
-        /// Add an index of the position in the comment position.
-        /// </summary>
-        /// <returns></returns>
-        private string comment(string prefix)
-        {
-            StringBuilder comment = new StringBuilder(prefix);
-
-            if (_isBuy.HasValue)
-            {
-                Position firstPosition = Positions.Find(_instanceLabel);
-                int indexPositions = Positions.FindAll(_instanceLabel).Length + 1;
-				string format = (prefix.Length != 0) ? "-{0}-{1}" : "{0}-{1}";
-
-                comment.AppendFormat(format, firstPosition.Id.ToString(), indexPositions.ToString());
-            }
-
-            return comment.ToString();
-        }
-
-        /// <summary>
-        /// Return the type Buy or Sell of the positions series.
-        /// </summary>
-        /// <returns></returns>
-        private TradeType? tradesType()
-        {
-            TradeType? tradeType = null;
-
-            if (_isBuy.HasValue)
-            {
-                Position anyPosition = Positions.Find(_instanceLabel);
-                tradeType = anyPosition.TradeType;
-            }
-
-            return tradeType;
-        }
-
-        /// <summary>
-        /// Return the type Buy or Sell or null in correspondance with Signal type.
-        /// </summary>
-        /// <returns></returns>
-        private TradeType? tradeType(SignalType signalType)
-        {
-            TradeType? tradeType = null;
+		/// <summary>
+		/// Return the type Buy or Sell or null in correspondance with Signal type.
+		/// </summary>
+		/// <returns></returns>
+		private TradeType? tradeType(SignalType signalType)
+		{
+			TradeType? tradeType = null;
 
 			if(signalType == SignalType.StrongBuy || signalType == SignalType.WeakBuy)
 				tradeType = TradeType.Buy;
@@ -569,17 +607,9 @@ namespace cAlgo.Robots
 				else
 					tradeType = null;
 
-            return tradeType;
-        }
-
-        /// <summary>
-        /// Return the first position of all taking positions.
-        /// </summary>
-        /// <returns></returns>
-        private Position firstPosition()
-        {
-            return Positions.Find(_instanceLabel);
-        }
+			return tradeType;
+		}
+    
 
         /// <summary>
         /// Return true if there is no position or false if there is position.
@@ -653,7 +683,7 @@ namespace cAlgo.Robots
 				"\nDn Price\t\t: " + Math.Round(dnPrice, Symbol.Digits) + 
 				"\nNext Order Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + 
 				"\nNext Price\t: " + Math.Round(priceOfNextOrder, Symbol.Digits) + 
-				"\nNext Volume\t: " + Math.Round(computeVolume() / LotSize /*Symbol.LotSize*/, 2) + " lots";
+				"\nNext Volume\t: " + Math.Round(Volume / LotSize /*Symbol.LotSize*/, 2) + " lots";
 
             ChartObjects.DrawHorizontalLine("gridLine", priceOfNextOrder, Colors.Navy, 2);
 
@@ -677,7 +707,7 @@ namespace cAlgo.Robots
             {
 				if( position.StopLoss.HasValue)
 				{
-					double potentialLoss = Math.Round((position.EntryPrice - position.StopLoss.Value) * position.Volume, 2);
+					double potentialLoss = Math.Round(position.potentialLoss().Value);
 					double pipsToStopLoss = Math.Round(position.stopLossToPips(Symbol).Value, 2);
 
 					positionsInfos.AppendFormat(format, position.Id, potentialLoss, pipsToStopLoss);				
@@ -686,21 +716,6 @@ namespace cAlgo.Robots
             }
 
             ChartObjects.DrawText("positionsInfos", positionsInfos.ToString(), StaticPosition.TopRight);
-        }
-
-        /// <summary>
-        /// Calculate the volume of the position to take with money management considerations.
-        /// </summary>
-        /// <returns></returns>
-        private double computeVolume()
-        {
-			double maxVolume = this.moneyManagement(RiskPercent, StopLoss);
-
-			double baseVolume = maxVolume / ((MaxOrders + 1) + (MartingaleCoeff * MaxOrders * (MaxOrders + 1)) / 2.0);
-
-			double volume = baseVolume * (1 + MartingaleCoeff * nPositions());
-
-			return volume;
         }
 
         /// <summary>
