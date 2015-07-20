@@ -96,8 +96,8 @@ namespace cAlgo.Robots
         [Parameter("Global MA Ceil Coefficient", DefaultValue = 0.618)]
         public double GlobalCeilCoefficient { get; set; }
 
-        [Parameter("Global Candle Ceil", DefaultValue =0, MinValue = 0)]
-		public int MinimumGlobalCandleCeil { get; set; }
+        [Parameter("Global Candle Size", DefaultValue =0, MinValue = 0)]
+		public int MinimumGlobalCandleSize { get; set; }
 
         [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
         public double WeakVolumePercent { get; set; }
@@ -216,7 +216,6 @@ namespace cAlgo.Robots
 
 		#endregion
 
-
 		protected override void OnStart()
         {
             base.OnStart();
@@ -263,7 +262,7 @@ namespace cAlgo.Robots
 
 			MarketSeries globalMarketSeries = MarketData.GetSeries(GlobalTimeFrame);
 			_atr = Indicators.AverageTrueRange(globalMarketSeries, 14, MovingAverageType.Exponential);
-			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleCeil);
+			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleSize);
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
