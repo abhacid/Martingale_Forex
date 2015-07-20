@@ -38,7 +38,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using cAlgo.API;
-using cAlgo.API.Indicators;
+using cAlgo.Indicators;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
 using cAlgo.Strategies;
@@ -67,42 +67,30 @@ namespace cAlgo.Robots
 
         [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0.01)]
         public double RiskPercent { get; set; }
-		
-		//[Parameter("Stop Loss", DefaultValue = 30, MinValue = 1)]
-		//public int _stopLoss { get; set; }
-
-		//[Parameter("Trail Start", DefaultValue = 17, MinValue = 0)]
-		//public int TrailStart { get; set; }
-
-		//[Parameter("Trail Stop", DefaultValue = 11, MinValue = 0)]
-		//public int TrailStop { get; set; }
-
-		[Parameter("ATR Period", DefaultValue = 14)]
-		public int AtrPeriod { get; set; }
-
-		[Parameter("ATR Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
-		public MovingAverageType AtrMovingAverageType { get; set; }
-
-		[Parameter("ATR Stop Loss Coefficient", DefaultValue = 1)]
-		public double AtrStopLossCoefficient { get; set; }
-
 
 		[Parameter("Reverse On Signal", DefaultValue = false)]
 		public bool ReverseInOppositeSignal { get; set; }
 
-        [Parameter("Global Timeframe")]
+        [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
+        public double WeakVolumePercent { get; set; }
+
+		[Parameter("Global Timeframe")]
         public TimeFrame GlobalTimeFrame { get; set; }
+
+		[Parameter("Global ATR Period", DefaultValue = 14)]
+		public int GlobalAtrPeriod { get; set; }
+
+		[Parameter("Global ATR Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
+		public MovingAverageType GlobalAtrMovingAverageType { get; set; }
+
+		[Parameter("Global ATR Stop Loss Coefficient", DefaultValue = 1)]
+		public double GlobalAtrStopLossCoefficient { get; set; }
 
         [Parameter("Global MA Ceil Coefficient", DefaultValue = 0.618)]
         public double GlobalCeilCoefficient { get; set; }
 
         [Parameter("Global Candle Size", DefaultValue =0, MinValue = 0)]
 		public int MinimumGlobalCandleSize { get; set; }
-
-        [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
-        public double WeakVolumePercent { get; set; }
-
-
 
         #endregion
 
@@ -111,9 +99,10 @@ namespace cAlgo.Robots
         private string _botName;
         private string _botVersion = Assembly.GetExecutingAssembly().FullName.Split(',')[1].Replace("Version=", "").Trim();
         private string _instanceLabel;
+
 		enum SignalType { StrongBuy, StrongSell, StrongNeutral, WeakBuy, WeakSell, WeakNeutral, Neutral}
 
-		AverageTrueRange _atr;
+		GlobalAverageTrueRange _globalAtr;
         CandlestickTendencyII _signalIndicator;
         private bool _debug;
         bool? _isBuy;
@@ -130,16 +119,14 @@ namespace cAlgo.Robots
 
         #endregion
 
-        #region cBot Events
-
-		#region Properties
+		#region cBot Properties
 		/// <summary>
 		/// Calculate the stoploss in correlation with Average True Range (ATR)
 		/// </summary>
 		private double? StopLoss
 		{
 			
-			get{ return _atr.Result.lastRealValue(0) * AtrStopLossCoefficient; }
+			get{ return _globalAtr.GlobalAtr.lastRealValue(0) * GlobalAtrStopLossCoefficient; }
 		}
 
 		/// <summary>
@@ -216,6 +203,7 @@ namespace cAlgo.Robots
 
 		#endregion
 
+        #region cBot Events
 		protected override void OnStart()
         {
             base.OnStart();
@@ -247,25 +235,25 @@ namespace cAlgo.Robots
 			}
 
             ChartObjects.DrawText("BotVersion", _botName + " " + _botVersion, StaticPosition.TopCenter);
-            if (_debug)
-            {
-                Print("The current symbol is {0}", Symbol.Code);
-                Print("The current symbol has PipSize (deposit currency) of: {0}", Symbol.PipSize);
-                Print("The current symbol has PipValue (quote currency) of: {0}", Symbol.PipValue);
-                Print("The current symbol has TickSize (deposit currency): {0}", Symbol.TickSize);
-                Print("The current symbol has TickSValue (quote currency): {0}", Symbol.TickValue);
-                Print("The current symbol has {0} Digits", Symbol.Digits);
-                Print("The current symbol minimum baseVolume is {0}", Symbol.VolumeMin);
-                Print("The current symbol maximum baseVolume is {0}", Symbol.VolumeMax);
-                Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
-            }
+			//if (_debug)
+			//{
+			//	Print("The current symbol is {0}", Symbol.Code);
+			//	Print("The current symbol has PipSize (deposit currency) of: {0}", Symbol.PipSize);
+			//	Print("The current symbol has PipValue (quote currency) of: {0}", Symbol.PipValue);
+			//	Print("The current symbol has TickSize (deposit currency): {0}", Symbol.TickSize);
+			//	Print("The current symbol has TickSValue (quote currency): {0}", Symbol.TickValue);
+			//	Print("The current symbol has {0} Digits", Symbol.Digits);
+			//	Print("The current symbol minimum baseVolume is {0}", Symbol.VolumeMin);
+			//	Print("The current symbol maximum baseVolume is {0}", Symbol.VolumeMax);
+			//	Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
+			//}
 
-			MarketSeries globalMarketSeries = MarketData.GetSeries(GlobalTimeFrame);
-			_atr = Indicators.AverageTrueRange(globalMarketSeries, 14, MovingAverageType.Exponential);
+			_globalAtr = Indicators.GetIndicator<GlobalAverageTrueRange>(GlobalTimeFrame, GlobalAtrPeriod, GlobalAtrMovingAverageType);
 			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleSize);
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
+
         }
 
 		protected override void OnStop()
@@ -337,6 +325,8 @@ namespace cAlgo.Robots
                 Print(errorString);
         }
         #endregion
+
+
 
         /// <summary>
         /// Gère le control des différentes prises de positions. un seul type de position est pris, le baseVolume des 
@@ -496,6 +486,7 @@ namespace cAlgo.Robots
             return null;
         }
 
+
         /// <summary>
         /// return a a signal of type SignaType in synchronisation with the signal indicator.
 		/// 
@@ -506,7 +497,12 @@ namespace cAlgo.Robots
         /// <returns></returns>
         private SignalType determineSignal()
         {
-			int index = MarketSeries.Close.Count - 1;
+			int index;
+			if(double.IsNaN(MarketSeries.Close[MarketSeries.Close.Count - 1]))
+				index = MarketSeries.Close.Count - 2;
+			else
+				index= MarketSeries.Close.Count - 1;
+
 			SignalType signalType = SignalType.Neutral;
 
 			int period = 2 * (int) (GlobalTimeFrame.ToTimeSpan().Ticks / MarketSeries.TimeFrame.ToTimeSpan().Ticks);
@@ -519,6 +515,14 @@ namespace cAlgo.Robots
 			bool isGlobalDown = _signalIndicator.GlobalTrendSignal[index] < 0;
 			bool isLocalDown = _signalIndicator.LocalTrendSignal[index] < 0;
 			bool isLocalMABelowThreshold = _signalIndicator.LocalMA[index] < -GlobalCeilCoefficient * volatility/2;
+
+			bool _actualLocalMARising = _signalIndicator.LocalMA[index] > _signalIndicator.LocalMA[index - 1];
+			bool _previewLocalMAFalling = _signalIndicator.LocalMA[index-2] > _signalIndicator.LocalMA[index - 1];
+			bool _actualLocalMAFalling = _signalIndicator.LocalMA[index] < _signalIndicator.LocalMA[index - 1];
+			bool _previewLocalMARising = _signalIndicator.LocalMA[index-2] < _signalIndicator.LocalMA[index - 1];;
+
+			bool isInversionOfUpTrend = _previewLocalMARising && _actualLocalMAFalling;
+			bool isInversionOfDownTrend = _previewLocalMAFalling && _actualLocalMARising;
 
 			if (!isGlobalUp && !isGlobalDown && !isLocalUp && !isLocalDown)
 				signalType = SignalType.Neutral;
@@ -533,14 +537,15 @@ namespace cAlgo.Robots
 				signalType = SignalType.WeakBuy;
 			else
 				if(isLocalDown)
-					signalType = SignalType.WeakSell;	
+					signalType = SignalType.WeakSell;
 
-			if(isLocalMABelowThreshold)
+			if(isLocalMABelowThreshold && isGlobalUp && isInversionOfDownTrend)
 				signalType = SignalType.StrongBuy;
 			else
-				if (isLocalMAOverThreshold)
+				if(isLocalMAOverThreshold && isGlobalDown && isInversionOfUpTrend)
 					signalType = SignalType.StrongSell;
-			
+
+			Print(signalType.ToString() + ", Time:{0}, isGlobalUp {1} isGlobalDown {2}", MarketSeries.OpenTime[index], isGlobalUp, isGlobalDown);	
 
 			return signalType;
         }
@@ -821,7 +826,7 @@ namespace cAlgo.Robots
 
 			if(!isTimeToTrade)
 			{
-				Print("Start time : {0}, server time : {1}, finish time : {2}", _startTime.TimeOfDay, Server.Time.TimeOfDay, _endTime.TimeOfDay);
+				//Print("Start time : {0}, server time : {1}, finish time : {2}", _startTime.TimeOfDay, Server.Time.TimeOfDay, _endTime.TimeOfDay);
 				return false;
 			}
 			else
