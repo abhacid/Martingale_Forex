@@ -83,6 +83,10 @@ namespace cAlgo.Robots
 		[Parameter("ATR Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
 		public MovingAverageType AtrMovingAverageType { get; set; }
 
+		[Parameter("ATR Stop Loss Coefficient", DefaultValue = 1)]
+		public double AtrStopLossCoefficient { get; set; }
+
+
 		[Parameter("Reverse On Signal", DefaultValue = false)]
 		public bool ReverseInOppositeSignal { get; set; }
 
@@ -135,7 +139,7 @@ namespace cAlgo.Robots
 		private double? StopLoss
 		{
 			
-			get{ return _atr.Result.lastRealValue(0); }
+			get{ return _atr.Result.lastRealValue(0) * AtrStopLossCoefficient; }
 		}
 
 		/// <summary>
@@ -257,7 +261,8 @@ namespace cAlgo.Robots
                 Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
             }
 
-			_atr = Indicators.AverageTrueRange(MarketSeries, 14, MovingAverageType.Exponential);
+			MarketSeries globalMarketSeries = MarketData.GetSeries(GlobalTimeFrame);
+			_atr = Indicators.AverageTrueRange(globalMarketSeries, 14, MovingAverageType.Exponential);
 			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleCeil);
 
             Positions.Opened += OnPositionOpened;
