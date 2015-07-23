@@ -8,7 +8,7 @@
     <ProjectTypeGuids>{DD87C1B2-3799-4CA2-93B6-5288EE928820};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>cAlgo</RootNamespace>
+    <RootNamespace>cAlgo.Robots</RootNamespace>
     <AssemblyName>Martingale_Forex</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
@@ -73,9 +73,9 @@
     <Content Include="Backtests\Martingale_Forex-Live-old version.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Indicators\Candlestick Tendency II\Candlestick Tendency II\Candlestick Tendency II.csproj">
-      <Project>{bb22c237-b1b8-4e4c-907b-f1d84cbaa1bc}</Project>
-      <Name>Candlestick Tendency II</Name>
+    <ProjectReference Include="..\..\..\Indicators\DirectionalMovementSystemRating\DirectionalMovementSystemRating\DirectionalMovementSystemRating.csproj">
+      <Project>{c480d4c2-848f-4ba6-b20f-c0e82b413cbf}</Project>
+      <Name>DirectionalMovementSystemRating</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Indicators\GlobalAverageTrueRange\GlobalAverageTrueRange\GlobalAverageTrueRange.csproj">
       <Project>{1f449e46-3866-4d16-872c-760110999447}</Project>

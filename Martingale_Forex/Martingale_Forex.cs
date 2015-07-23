@@ -32,16 +32,13 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using cAlgo.API;
-using cAlgo.Indicators;
+using cAlgo.API.Indicators;
 using cAlgo.API.Internals;
 using cAlgo.Lib;
-using cAlgo.Strategies;
+using cAlgo.Indicators;
 
 namespace cAlgo.Robots
 {
@@ -56,19 +53,19 @@ namespace cAlgo.Robots
 		[Parameter("UTC+0 Trade Stop", DefaultValue = 24.0)]
 		public double TimeStop { get; set; } 
        
-        [Parameter("Grid Step", DefaultValue = 11, MinValue = 0.1)]
+        [Parameter("Grid Step", DefaultValue = 7, MinValue = 0.1)]
         public int GridStep { get; set; }
 
 		[Parameter("Martingale Coefficient", DefaultValue = 0.5, MinValue = 0)]
         public double MartingaleCoeff { get; set; }
 
-        [Parameter("Max Orders", DefaultValue = 20, MinValue = 1)]
+        [Parameter("Max Orders", DefaultValue = 1, MinValue = 1)]
         public int MaxOrders { get; set; }
 
         [Parameter("Risk (%)", DefaultValue = 2, MinValue = 0.01)]
         public double RiskPercent { get; set; }
 
-		[Parameter("Reverse On Signal", DefaultValue = false)]
+		[Parameter("Reverse On Signal", DefaultValue = true)]
 		public bool ReverseInOppositeSignal { get; set; }
 
         [Parameter("Weak Volume (%)", DefaultValue = 10, MinValue = 0)]
@@ -83,15 +80,23 @@ namespace cAlgo.Robots
 		[Parameter("Global ATR Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
 		public MovingAverageType GlobalAtrMovingAverageType { get; set; }
 
-		[Parameter("Global ATR Stop Loss Coefficient", DefaultValue = 1)]
+		[Parameter("Global ATR Stop Loss Coefficient", DefaultValue = 11)]
 		public double GlobalAtrStopLossCoefficient { get; set; }
 
-        [Parameter("Global MA Ceil Coefficient", DefaultValue = 0.618)]
-        public double GlobalCeilCoefficient { get; set; }
+		[Parameter("ADX Period", DefaultValue = 14, MinValue = 1)]
+		public int ADXPeriod { get; set; }
 
-        [Parameter("Global Candle Size", DefaultValue =0, MinValue = 0)]
-		public int MinimumGlobalCandleSize { get; set; }
+		[Parameter("ADX Trend Ceil", DefaultValue = 5, MinValue = 0)]
+		public int ADXTrendCeil { get; set; }
 
+        [Parameter("ADX Strong Trend Ceil", DefaultValue =15, MinValue = 0)]
+		public int ADXStrongTrendCeil { get; set; }
+
+        [Parameter("ADX Fineness", DefaultValue =3, MinValue = 0)]
+		public int ADXFineness { get; set; }
+
+        [Parameter("Minimum between DI", DefaultValue =7, MinValue = 0)]
+		public int MinimumBetweenDI { get; set; }
         #endregion
 
         #region cBot variables
@@ -103,7 +108,8 @@ namespace cAlgo.Robots
 		enum SignalType { StrongBuy, StrongSell, StrongNeutral, WeakBuy, WeakSell, WeakNeutral, Neutral}
 
 		GlobalAverageTrueRange _globalAtr;
-        CandlestickTendencyII _signalIndicator;
+		DirectionalMovementSystemRating _signalIndicator;
+
         private bool _debug;
         bool? _isBuy;
         int? _factor;
@@ -235,21 +241,21 @@ namespace cAlgo.Robots
 			}
 
             ChartObjects.DrawText("BotVersion", _botName + " " + _botVersion, StaticPosition.TopCenter);
-			//if (_debug)
-			//{
-			//	Print("The current symbol is {0}", Symbol.Code);
-			//	Print("The current symbol has PipSize (deposit currency) of: {0}", Symbol.PipSize);
-			//	Print("The current symbol has PipValue (quote currency) of: {0}", Symbol.PipValue);
-			//	Print("The current symbol has TickSize (deposit currency): {0}", Symbol.TickSize);
-			//	Print("The current symbol has TickSValue (quote currency): {0}", Symbol.TickValue);
-			//	Print("The current symbol has {0} Digits", Symbol.Digits);
-			//	Print("The current symbol minimum baseVolume is {0}", Symbol.VolumeMin);
-			//	Print("The current symbol maximum baseVolume is {0}", Symbol.VolumeMax);
-			//	Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
-			//}
+			if(_debug)
+			{
+				Print("The current symbol is {0}", Symbol.Code);
+				Print("The current symbol has PipSize (deposit currency) of: {0}", Symbol.PipSize);
+				Print("The current symbol has PipValue (quote currency) of: {0}", Symbol.PipValue);
+				Print("The current symbol has TickSize (deposit currency): {0}", Symbol.TickSize);
+				Print("The current symbol has TickSValue (quote currency): {0}", Symbol.TickValue);
+				Print("The current symbol has {0} Digits", Symbol.Digits);
+				Print("The current symbol minimum baseVolume is {0}", Symbol.VolumeMin);
+				Print("The current symbol maximum baseVolume is {0}", Symbol.VolumeMax);
+				Print("The current symbol step baseVolume is {0}", Symbol.VolumeStep);
+			}
 
 			_globalAtr = Indicators.GetIndicator<GlobalAverageTrueRange>(GlobalTimeFrame, GlobalAtrPeriod, GlobalAtrMovingAverageType);
-			_signalIndicator = Indicators.GetIndicator<CandlestickTendencyII>(GlobalTimeFrame, MinimumGlobalCandleSize);
+			_signalIndicator = Indicators.GetIndicator<DirectionalMovementSystemRating>(ADXPeriod);
 
             Positions.Opened += OnPositionOpened;
             Positions.Closed += OnPositionClosed;
@@ -366,7 +372,7 @@ namespace cAlgo.Robots
 
 				if (ReverseInOppositeSignal)
 				{
-					SignalType newSignalType = determineSignal();
+					SignalType newSignalType = Signal();
 					if(!isNeutralSignal(newSignalType))
 					{
 						if ((_signalType == SignalType.StrongBuy && newSignalType == SignalType.StrongSell) || 
@@ -389,7 +395,7 @@ namespace cAlgo.Robots
         private TradeResult manageFirstOrder(double strongVolume)
         {
             TradeResult tradeResult = null;
-			SignalType signalType = determineSignal();
+			SignalType signalType = Signal();
 			double volume = strongVolume;
 
             if (!isNeutralSignal(signalType))
@@ -492,60 +498,121 @@ namespace cAlgo.Robots
 		/// 
 		/// 'Count-1' is the index of the last candle so 'Count-2' is the preview candle
 		/// You cannot use 'Count-1' because the Close property is not defined for the last 
-		/// active candle, but CandleStickTendency use 
+		/// active candle.
+		/// 
+
         /// </summary>
         /// <returns></returns>
-        private SignalType determineSignal()
+        private SignalType Signal()
         {
-			int index;
-			if(double.IsNaN(MarketSeries.Close[MarketSeries.Close.Count - 1]))
-				index = MarketSeries.Close.Count - 2;
-			else
-				index= MarketSeries.Close.Count - 1;
-
+			int index = MarketSeries.Close.Count - 2;
 			SignalType signalType = SignalType.Neutral;
 
-			int period = 2 * (int) (GlobalTimeFrame.ToTimeSpan().Ticks / MarketSeries.TimeFrame.ToTimeSpan().Ticks);
+			bool isAdxAboveTrendCeil = _signalIndicator.ADX[index] > ADXTrendCeil;
+			bool isAdxRatingAboveTrendCeil = _signalIndicator.ADXR[index] > ADXTrendCeil;
 
-			double volatility = _signalIndicator.LocalMA.volatility(period);
+			bool isStrongTrend = _signalIndicator.ADX[index] > ADXStrongTrendCeil;
+			bool isWeakTrend = _signalIndicator.ADX[index] < _signalIndicator.ADXR[index];
 
-			bool isGlobalUp = _signalIndicator.GlobalTrendSignal[index]> 0;
-			bool isLocalUp = _signalIndicator.LocalTrendSignal[index] > 0;
-			bool isLocalMAOverThreshold = _signalIndicator.LocalMA[index] > GlobalCeilCoefficient * volatility / 2;
-			bool isGlobalDown = _signalIndicator.GlobalTrendSignal[index] < 0;
-			bool isLocalDown = _signalIndicator.LocalTrendSignal[index] < 0;
-			bool isLocalMABelowThreshold = _signalIndicator.LocalMA[index] < -GlobalCeilCoefficient * volatility/2;
+			bool isTrend = isAdxAboveTrendCeil && isAdxRatingAboveTrendCeil;
+			
+			double deltaDI = _signalIndicator.DIPlus[index] - _signalIndicator.DIMinus[index];
+			bool isDeltaDIAboveMinimum = Math.Abs(deltaDI) >= MinimumBetweenDI;
 
-			bool _actualLocalMARising = _signalIndicator.LocalMA[index] > _signalIndicator.LocalMA[index - 1];
-			bool _previewLocalMAFalling = _signalIndicator.LocalMA[index-2] > _signalIndicator.LocalMA[index - 1];
-			bool _actualLocalMAFalling = _signalIndicator.LocalMA[index] < _signalIndicator.LocalMA[index - 1];
-			bool _previewLocalMARising = _signalIndicator.LocalMA[index-2] < _signalIndicator.LocalMA[index - 1];;
+			bool isDiPlusHasCrossedAboveDiMinus = _signalIndicator.DIPlus.HasCrossedAbove(_signalIndicator.DIMinus, ADXFineness);
+			bool isDiPlusHasCrossedBelowDiMinus = _signalIndicator.DIPlus.HasCrossedBelow(_signalIndicator.DIMinus, ADXFineness);
 
-			bool isInversionOfUpTrend = _previewLocalMARising && _actualLocalMAFalling;
-			bool isInversionOfDownTrend = _previewLocalMAFalling && _actualLocalMARising;
+			bool isBuySignal = isDiPlusHasCrossedAboveDiMinus && !isDiPlusHasCrossedBelowDiMinus && isDeltaDIAboveMinimum;
+			bool isSellSignal = isDiPlusHasCrossedBelowDiMinus && !isDiPlusHasCrossedAboveDiMinus && isDeltaDIAboveMinimum;
 
-			if (!isGlobalUp && !isGlobalDown && !isLocalUp && !isLocalDown)
-				signalType = SignalType.Neutral;
+			//bool isBuySignal = deltaDI > MinimumBetweenDI;
+			//bool isSellSignal = deltaDI < -MinimumBetweenDI;
 
-			if(!isGlobalUp && !isGlobalDown)
-				signalType = SignalType.StrongNeutral;
+			//Print("ADX : {0} ADXR : {1}", _signalIndicator.ADX[index], _signalIndicator.ADXR[index]);
 
-			if(!isLocalUp && !isLocalDown)
-				signalType = SignalType.WeakNeutral;
+			if(isTrend && isWeakTrend)
+			{
+				if(isBuySignal)
+					signalType = SignalType.WeakBuy;
+				else
+				{
+					if(isSellSignal)
+						signalType = SignalType.WeakSell;
+					else
+						signalType = SignalType.WeakNeutral;
+				}
 
-			if(isLocalUp)
-				signalType = SignalType.WeakBuy;
-			else
-				if(isLocalDown)
-					signalType = SignalType.WeakSell;
+			}
 
-			if(isLocalMABelowThreshold && isGlobalUp && isInversionOfDownTrend)
-				signalType = SignalType.StrongBuy;
-			else
-				if(isLocalMAOverThreshold && isGlobalDown && isInversionOfUpTrend)
-					signalType = SignalType.StrongSell;
+			if(isTrend && isStrongTrend)
+			{
+				if(isBuySignal)
+					signalType = SignalType.StrongBuy;
+				else
+				{
+					if(isSellSignal)
+						signalType = SignalType.StrongSell;
+					else
+						signalType = SignalType.StrongNeutral;
+				}
 
-			Print(signalType.ToString() + ", Time:{0}, isGlobalUp {1} isGlobalDown {2}", MarketSeries.OpenTime[index], isGlobalUp, isGlobalDown);	
+	
+			}
+
+
+
+			//int index;
+			////if(double.IsNaN(MarketSeries.Close[MarketSeries.Close.Count - 1]))
+			////	index = MarketSeries.Close.Count - 2;
+			////else
+			//	index= MarketSeries.Close.Count - 1;
+
+			//SignalType signalType = SignalType.Neutral;
+
+			//int period = 2 * (int) (GlobalTimeFrame.ToTimeSpan().Ticks / MarketSeries.TimeFrame.ToTimeSpan().Ticks);
+
+			//double volatility = _signalIndicator.LocalMA.volatility(period);
+
+
+			//bool isGlobalUp = _signalIndicator.GlobalTrendSignal[index]> 0;
+			//bool isLocalUp = _signalIndicator.LocalTrendSignal[index] > 0;
+			//bool isLocalMAOverThreshold = _signalIndicator.LocalMA[index] > GlobalCeilCoefficient * volatility / 2;
+			//bool isGlobalDown = _signalIndicator.GlobalTrendSignal[index] < 0;
+			//bool isLocalDown = _signalIndicator.LocalTrendSignal[index] < 0;
+			//bool isLocalMABelowThreshold = _signalIndicator.LocalMA[index] < -GlobalCeilCoefficient * volatility/2;
+
+			//bool _actualLocalMARising = _signalIndicator.LocalMA[index] > _signalIndicator.LocalMA[index - 1];
+			//bool _previewLocalMAFalling = _signalIndicator.LocalMA[index-2] > _signalIndicator.LocalMA[index - 1];
+			//bool _actualLocalMAFalling = _signalIndicator.LocalMA[index] < _signalIndicator.LocalMA[index - 1];
+			//bool _previewLocalMARising = _signalIndicator.LocalMA[index-2] < _signalIndicator.LocalMA[index - 1];;
+
+			//bool isInversionOfUpTrend = _previewLocalMARising && _actualLocalMAFalling;
+			//bool isInversionOfDownTrend = _previewLocalMAFalling && _actualLocalMARising;
+
+			//if (!isGlobalUp && !isGlobalDown && !isLocalUp && !isLocalDown)
+			//	signalType = SignalType.Neutral;
+
+			//if(!isGlobalUp && !isGlobalDown)
+			//	signalType = SignalType.StrongNeutral;
+
+			//if(!isLocalUp && !isLocalDown)
+			//	signalType = SignalType.WeakNeutral;
+
+			//if(isLocalUp)
+			//	signalType = SignalType.WeakBuy;
+			//else
+			//	if(isLocalDown)
+			//		signalType = SignalType.WeakSell;
+
+			//if(isLocalMABelowThreshold && isGlobalUp && isInversionOfDownTrend)
+			//	signalType = SignalType.StrongBuy;
+			//else
+			//	if(isLocalMAOverThreshold && isGlobalDown && isInversionOfUpTrend)
+			//		signalType = SignalType.StrongSell;
+
+			//Print(signalType.ToString() + ", Time:{0}, isGlobalUp {1} isGlobalDown {2}", MarketSeries.OpenTime[index], isGlobalUp, isGlobalDown);	
+
+			//return signalType;
 
 			return signalType;
         }
